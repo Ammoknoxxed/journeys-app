@@ -17,15 +17,16 @@ export async function updateNetIncome(amount: number) {
   revalidatePath("/");
 }
 
-// --- BUCKETLIST ---
-export async function addBucketItem(title: string, price: number) {
+// --- BUCKETLIST & SINKING FUNDS ---
+// UPDATE: Unterstützt jetzt das isSurprise Flag
+export async function addBucketItem(title: string, price: number, isSurprise: boolean = false) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Nicht autorisiert");
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   if (!user) throw new Error("User nicht gefunden");
 
   await prisma.bucketItem.create({
-    data: { title, price, creatorId: user.id },
+    data: { title, price, isSurprise, creatorId: user.id },
   });
   revalidatePath("/");
 }
@@ -48,7 +49,28 @@ export async function deleteBucketItem(itemId: string) {
   revalidatePath("/");
 }
 
-// --- FIXKOSTEN (FINANCIAL OBLIGATIONS) ---
+// NEU: Geld in einen Traum einzahlen (Sparschwein)
+export async function addFundsToItem(itemId: string, amount: number) {
+  const item = await prisma.bucketItem.findUnique({ where: { id: itemId } });
+  if (!item) throw new Error("Item nicht gefunden");
+
+  await prisma.bucketItem.update({
+    where: { id: itemId },
+    data: { savedAmount: item.savedAmount + amount },
+  });
+  revalidatePath("/");
+}
+
+// NEU: Traum als erfüllt markieren (Memory Archive Vorbereitung)
+export async function markItemCompleted(itemId: string) {
+  await prisma.bucketItem.update({
+    where: { id: itemId },
+    data: { isCompleted: true },
+  });
+  revalidatePath("/");
+}
+
+// --- FIXKOSTEN ---
 export async function addObligation(title: string, amount: number) {
   await prisma.financialObligation.create({
     data: { title, amount, type: "FIXKOSTEN" }
@@ -58,5 +80,23 @@ export async function addObligation(title: string, amount: number) {
 
 export async function deleteObligation(id: string) {
   await prisma.financialObligation.delete({ where: { id } });
+  revalidatePath("/");
+}
+
+// --- NEU: VARIABLE AUSGABEN (DAILY SYNC) ---
+export async function addExpense(title: string, amount: number) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Nicht autorisiert");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) throw new Error("User nicht gefunden");
+
+  await prisma.expense.create({
+    data: { title, amount, userId: user.id }
+  });
+  revalidatePath("/");
+}
+
+export async function deleteExpense(id: string) {
+  await prisma.expense.delete({ where: { id } });
   revalidatePath("/");
 }
