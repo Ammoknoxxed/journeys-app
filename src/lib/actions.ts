@@ -1,3 +1,4 @@
+// src/lib/actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -302,7 +303,7 @@ export async function submitCheckIn(weekYear: string, highlight: string, stress:
   revalidatePath("/checkin");
 }
 
-// --- WELTKARTE (TRAVEL TRACKER) ---
+// --- WELTKARTE & REISEKOFFER ---
 export async function addTravelPoint(name: string, type: string) {
   await prisma.travelPoint.create({ data: { name, type } });
   revalidatePath("/map");
@@ -318,4 +319,27 @@ export async function addTrip(title: string, destination: string, dateStr: strin
     data: { title, destination, date: new Date(dateStr) }
   });
   revalidatePath("/trips");
+}
+
+// --- SMART HOME LOGIK ---
+export async function addSmartDevice(name: string, type: string, room: string) {
+  const session = await getServerSession(authOptions);
+  await prisma.smartDevice.create({
+    data: { name, type, room, addedBy: session?.user?.name || "System" }
+  });
+  revalidatePath("/smarthome");
+}
+
+export async function toggleSmartDevice(id: string, currentState: boolean) {
+  // Hier wird später die API-Logik zu Govee / Samsung TV eingefügt
+  await prisma.smartDevice.update({
+    where: { id },
+    data: { isActive: !currentState }
+  });
+  revalidatePath("/smarthome");
+}
+
+export async function deleteSmartDevice(id: string) {
+  await prisma.smartDevice.delete({ where: { id } });
+  revalidatePath("/smarthome");
 }
