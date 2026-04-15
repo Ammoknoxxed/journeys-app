@@ -1,4 +1,3 @@
-// src/lib/actions.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -67,7 +66,7 @@ export async function markItemCompleted(itemId: string) {
   revalidatePath("/");
 }
 
-// --- FIXKOSTEN ---
+// --- FIXKOSTEN & ABOS ---
 export async function addObligation(title: string, amount: number) {
   await prisma.financialObligation.create({
     data: { title, amount, type: "FIXKOSTEN" }
@@ -77,6 +76,34 @@ export async function addObligation(title: string, amount: number) {
 
 export async function deleteObligation(id: string) {
   await prisma.financialObligation.delete({ where: { id } });
+  revalidatePath("/");
+}
+
+export async function addSubscription(title: string, amount: number, cycle: string) {
+  await prisma.subscription.create({ data: { title, amount, cycle } });
+  
+  // Kopplung: Erstellt automatisch eine Fixkosten-Verpflichtung
+  await prisma.financialObligation.create({
+    data: { 
+      title: `Abo: ${title}`, 
+      amount: cycle === "YEARLY" ? amount / 12 : amount, 
+      type: "FIXKOSTEN" 
+    }
+  });
+  revalidatePath("/subscriptions");
+  revalidatePath("/");
+}
+
+export async function deleteSubscription(id: string) {
+  const sub = await prisma.subscription.findUnique({ where: { id } });
+  if (sub) {
+    // Löscht auch die gekoppelte Fixkosten-Verpflichtung
+    await prisma.financialObligation.deleteMany({
+      where: { title: `Abo: ${sub.title}` }
+    });
+  }
+  await prisma.subscription.delete({ where: { id } });
+  revalidatePath("/subscriptions");
   revalidatePath("/");
 }
 
@@ -101,17 +128,58 @@ export async function deleteExpense(id: string) {
 // --- EINKAUFSLISTE ---
 export async function addShoppingItem(title: string) {
   await prisma.shoppingItem.create({ data: { title } });
+  revalidatePath("/shopping");
   revalidatePath("/");
 }
 
 export async function toggleShoppingItem(id: string, checked: boolean) {
   await prisma.shoppingItem.update({ where: { id }, data: { checked } });
-  revalidatePath("/");
+  revalidatePath("/shopping");
 }
 
 export async function clearShoppingList() {
   await prisma.shoppingItem.deleteMany({ where: { checked: true } });
-  revalidatePath("/");
+  revalidatePath("/shopping");
+}
+
+// --- HOME WIKI ---
+export async function addWikiEntry(title: string, content: string, category: string) {
+  const session = await getServerSession(authOptions);
+  await prisma.wikiEntry.create({
+    data: { title, content, category, addedBy: session?.user?.name || "Unbekannt" }
+  });
+  revalidatePath("/wiki");
+}
+
+export async function deleteWikiEntry(id: string) {
+  await prisma.wikiEntry.delete({ where: { id } });
+  revalidatePath("/wiki");
+}
+
+// --- PUTZPLAN (CHORES) ---
+export async function addChore(title: string, points: number) {
+  await prisma.chore.create({
+    data: { title, points }
+  });
+  revalidatePath("/chores");
+}
+
+export async function completeChore(choreId: string, points: number) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Nicht autorisiert");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) throw new Error("User nicht gefunden");
+
+  await prisma.chore.update({
+    where: { id: choreId },
+    data: { lastDoneBy: user.name, lastDoneAt: new Date() }
+  });
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { chorePoints: user.chorePoints + points }
+  });
+  revalidatePath("/chores");
 }
 
 // --- DATE NIGHT ROULETTE ---
@@ -135,43 +203,9 @@ export async function markDateUsed(id: string) {
   revalidatePath("/roulette");
 }
 
-// --- GAMIFIED CHORES (PUTZPLAN) ---
-export async function addChore(title: string, points: number) {
-  await prisma.chore.create({
-    data: { title, points }
-  });
-  revalidatePath("/chores");
-}
-
-export async function completeChore(choreId: string, points: number) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Nicht autorisiert");
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user) throw new Error("User nicht gefunden");
-
-  // Aufgabe als erledigt markieren
-  await prisma.chore.update({
-    where: { id: choreId },
-    data: { lastDoneBy: user.name, lastDoneAt: new Date() }
-  });
-
-  // Dem User die Punkte gutschreiben
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { chorePoints: user.chorePoints + points }
-  });
-
-  revalidatePath("/chores");
-}
-
-// --- MEAL PREP PLANER ---
+// --- MEAL PREP ---
 export async function addMealPlan(dayOfWeek: number, mealType: string, recipe: string, ingredientsInput: string) {
-  // Verwandelt einen Text wie "Tomaten, Nudeln, Pesto" in eine saubere Liste
-  const ingredients = ingredientsInput
-    .split(',')
-    .map(i => i.trim())
-    .filter(i => i.length > 0);
-
+  const ingredients = ingredientsInput.split(',').map(i => i.trim()).filter(i => i.length > 0);
   await prisma.mealPlan.create({
     data: { dayOfWeek, mealType, recipe, ingredients }
   });
@@ -187,17 +221,15 @@ export async function syncIngredientsToShoppingList(mealId: string) {
   const meal = await prisma.mealPlan.findUnique({ where: { id: mealId } });
   if (!meal || meal.ingredients.length === 0) return;
 
-  // Schreibt jede Zutat automatisch auf die Einkaufsliste
   for (const ingredient of meal.ingredients) {
     await prisma.shoppingItem.create({
       data: { title: `${ingredient} (für ${meal.recipe})` }
     });
   }
-  revalidatePath("/mealprep");
-  revalidatePath("/shopping"); // Aktualisiert auch das Shopping-Dashboard
+  revalidatePath("/shopping");
 }
 
-// --- DOKUMENTEN TRESOR (VAULT) ---
+// --- TRESOR (VAULT) ---
 export async function addVaultItem(title: string, url: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Nicht autorisiert");
@@ -213,4 +245,77 @@ export async function addVaultItem(title: string, url: string) {
 export async function deleteVaultItem(id: string) {
   await prisma.vaultItem.delete({ where: { id } });
   revalidatePath("/vault");
+}
+
+// --- SECRET GIFTS ---
+export async function addGiftIdea(title: string, priceStr: string, url: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Nicht autorisiert");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) throw new Error("User nicht gefunden");
+
+  const price = priceStr ? parseFloat(priceStr) : null;
+  await prisma.giftIdea.create({
+    data: { title, price, url, userId: user.id }
+  });
+  revalidatePath("/gifts");
+}
+
+export async function toggleGiftPurchased(id: string, isPurchased: boolean) {
+  await prisma.giftIdea.update({ where: { id }, data: { isPurchased } });
+  revalidatePath("/gifts");
+}
+
+export async function deleteGiftIdea(id: string) {
+  await prisma.giftIdea.delete({ where: { id } });
+  revalidatePath("/gifts");
+}
+
+// --- KALENDER (TIMELINE) ---
+export async function addTimelineEvent(title: string, dateStr: string, type: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Nicht autorisiert");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) throw new Error("User nicht gefunden");
+
+  await prisma.timelineEvent.create({
+    data: { title, date: new Date(dateStr), type, creatorId: user.id }
+  });
+  revalidatePath("/timeline");
+}
+
+export async function deleteTimelineEvent(id: string) {
+  await prisma.timelineEvent.delete({ where: { id } });
+  revalidatePath("/timeline");
+}
+
+// --- WEEKLY SYNC (CHECK-IN) ---
+export async function submitCheckIn(weekYear: string, highlight: string, stress: string, nextWeek: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Nicht autorisiert");
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) throw new Error("User nicht gefunden");
+
+  await prisma.checkInAnswer.create({
+    data: { weekYear, highlight, stress, nextWeek, userId: user.id }
+  });
+  revalidatePath("/checkin");
+}
+
+// --- WELTKARTE (TRAVEL TRACKER) ---
+export async function addTravelPoint(name: string, type: string) {
+  await prisma.travelPoint.create({ data: { name, type } });
+  revalidatePath("/map");
+}
+
+export async function deleteTrip(id: string) {
+  await prisma.trip.delete({ where: { id } });
+  revalidatePath("/trips");
+}
+
+export async function addTrip(title: string, destination: string, dateStr: string) {
+  await prisma.trip.create({
+    data: { title, destination, date: new Date(dateStr) }
+  });
+  revalidatePath("/trips");
 }

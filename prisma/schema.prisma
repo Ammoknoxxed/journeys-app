@@ -1,5 +1,4 @@
 // prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,18 +13,19 @@ model User {
   email         String       @unique
   password      String       
   netIncome     Float        @default(0) 
-  chorePoints   Int          @default(0) // NEU: Punktekonto für den Putzplan
+  chorePoints   Int          @default(0) 
   
   items         BucketItem[] @relation("CreatedItems")
   approvedItems BucketItem[] @relation("ApprovedItems")
   expenses      Expense[]    @relation("UserExpenses")
   dateIdeas     DateIdea[]   @relation("CreatedDates")
+  gifts         GiftIdea[]   @relation("UserGifts")
+  checkIns      CheckInAnswer[] @relation("UserCheckIns")
   
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
 
-// ... (BucketItem, FinancialObligation, Expense, ShoppingItem bleiben exakt wie vorher)
 model BucketItem {
   id          String   @id @default(cuid())
   title       String
@@ -47,7 +47,6 @@ model FinancialObligation {
   title       String
   amount      Float
   type        String   
-  isShared    Boolean  @default(true) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -68,19 +67,15 @@ model ShoppingItem {
   createdAt DateTime @default(now())
 }
 
-// --- NEUE MODULE ---
-
-// 1. Gamifizierter Putzplan
 model Chore {
   id          String   @id @default(cuid())
   title       String
   points      Int      @default(10)
-  lastDoneBy  String?  // Name des Users
+  lastDoneBy  String?  
   lastDoneAt  DateTime?
   createdAt   DateTime @default(now())
 }
 
-// 2. Date-Night Roulette
 model DateIdea {
   id          String   @id @default(cuid())
   title       String
@@ -90,21 +85,96 @@ model DateIdea {
   createdAt   DateTime @default(now())
 }
 
-// 3. Meal Prep Planer
 model MealPlan {
   id          String   @id @default(cuid())
-  dayOfWeek   Int      // 1 = Montag, 7 = Sonntag
-  mealType    String   // "LUNCH" oder "DINNER"
+  dayOfWeek   Int      
+  mealType    String   
   recipe      String
-  ingredients String[] // Array für den Auto-Sync zur Einkaufsliste
+  ingredients String[] 
   createdAt   DateTime @default(now())
 }
 
-// 4. Dokumenten Tresor
 model VaultItem {
   id          String   @id @default(cuid())
   title       String
-  url         String   // Link (z.B. Google Drive)
+  url         String   
+  addedBy     String
+  createdAt   DateTime @default(now())
+}
+
+model WikiEntry {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("Allgemein")
+  addedBy   String
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Float
+  cycle       String   @default("MONTHLY") 
+  createdAt   DateTime @default(now())
+}
+
+model Trip {
+  id          String   @id @default(cuid())
+  title       String
+  destination String
+  date        DateTime
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model TravelPoint {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("WANT_TO_GO") 
+  createdAt DateTime @default(now())
+}
+
+model GiftIdea {
+  id          String   @id @default(cuid())
+  title       String
+  price       Float?
+  url         String?
+  isPurchased Boolean  @default(false)
+  userId      String
+  user        User     @relation("UserGifts", fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  title       String
+  date        DateTime
+  type        String   @default("EVENT") 
+  creatorId   String
+  createdAt   DateTime @default(now())
+}
+
+model CheckInAnswer {
+  id          String   @id @default(cuid())
+  weekYear    String   
+  highlight   String
+  stress      String
+  nextWeek    String
+  userId      String
+  user        User     @relation("UserCheckIns", fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([weekYear, userId]) 
+}
+
+model SmartDevice {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   
+  isActive    Boolean  @default(false)
+  value       String?  
+  room        String   @default("Wohnzimmer")
   addedBy     String
   createdAt   DateTime @default(now())
 }

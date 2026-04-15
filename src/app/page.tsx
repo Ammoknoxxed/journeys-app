@@ -18,10 +18,7 @@ export default async function Dashboard() {
   const allUsers = await prisma.user.findMany();
   const currentUser = allUsers.find(u => u.email === session.user?.email);
   const partner = allUsers.find(u => u.email !== session.user?.email);
-  
   const obligations = await prisma.financialObligation.findMany();
-  
-  // Zählen, wie viele Artikel auf der Einkaufsliste fehlen
   const openShoppingItemsCount = await prisma.shoppingItem.count({ where: { checked: false } });
   
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -40,14 +37,12 @@ export default async function Dashboard() {
   const myIncome = currentUser?.netIncome || 0;
   const partnerIncome = partner?.netIncome || 0;
   const totalIncome = myIncome + partnerIncome;
-  
   const totalExpenses = obligations.reduce((sum, ob) => sum + ob.amount, 0);
   const totalVariable = expenses.reduce((sum, ex) => sum + ex.amount, 0);
   const freeCashflow = totalIncome - totalExpenses - totalVariable;
 
   const mySharePct = totalIncome > 0 ? (myIncome / totalIncome) : 0.5;
   const partnerSharePct = 1 - mySharePct;
-
   const myFairCost = totalExpenses * mySharePct;
   const partnerFairCost = totalExpenses * partnerSharePct;
 
@@ -92,52 +87,60 @@ export default async function Dashboard() {
           </div>
         </header>
 
-        {/* QUICK APPS & NAVIGATION */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Link href="/shopping" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 dark:hover:bg-stone-800 transition-all flex flex-col justify-between group h-32">
-            <div className="flex justify-between items-start">
-              <h2 className="text-sm font-bold">Shopping</h2>
-              <span className="text-xl group-hover:scale-110 transition-transform">🛒</span>
-            </div>
-            <p className="text-xs text-stone-400">{openShoppingItemsCount} offene Artikel</p>
+        {/* QUICK APPS HUB */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Link href="/shopping" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Shopping</h2><span className="text-xl group-hover:scale-110 transition-transform">🛒</span></div>
+            <p className="text-xs text-stone-400">{openShoppingItemsCount} Artikel</p>
           </Link>
-          
-          <Link href="/mealprep" className="bg-[#C5A38E] text-white p-5 rounded-3xl shadow-lg hover:bg-[#A38572] transition-all flex flex-col justify-between group h-32">
-            <div className="flex justify-between items-start">
-              <h2 className="text-sm font-bold">Meal Prep</h2>
-              <span className="text-xl group-hover:scale-110 transition-transform">🍳</span>
-            </div>
-            <p className="text-xs text-white/80">Wochenplaner</p>
+          <Link href="/mealprep" className="bg-[#C5A38E] text-white p-5 rounded-3xl shadow-lg hover:bg-[#A38572] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Meal Prep</h2><span className="text-xl group-hover:scale-110 transition-transform">🍳</span></div>
+            <p className="text-xs text-white/80">Planer</p>
           </Link>
-
-          <Link href="/chores" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 dark:hover:bg-stone-800 transition-all flex flex-col justify-between group h-32">
-            <div className="flex justify-between items-start">
-              <h2 className="text-sm font-bold">Putzplan</h2>
-              <span className="text-xl group-hover:scale-110 transition-transform">✨</span>
-            </div>
-            <p className="text-xs text-stone-400">Karma Tracker</p>
+          <Link href="/chores" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Putzplan</h2><span className="text-xl group-hover:scale-110 transition-transform">✨</span></div>
+            <p className="text-xs text-stone-400">{currentUser?.chorePoints || 0} Pkt</p>
           </Link>
-
-          <Link href="/roulette" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-800 p-5 rounded-3xl shadow-sm hover:border-[#C5A38E] transition-all flex flex-col justify-between group h-32">
-            <div className="flex justify-between items-start">
-              <h2 className="text-sm font-bold">Date Night</h2>
-              <span className="text-xl group-hover:scale-110 transition-transform">🎲</span>
-            </div>
-            <p className="text-xs text-stone-500">Ideen-Roulette</p>
+          <Link href="/roulette" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-800 p-5 rounded-3xl shadow-sm hover:border-[#C5A38E] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Roulette</h2><span className="text-xl group-hover:scale-110 transition-transform">🎲</span></div>
+            <p className="text-xs text-stone-500">Date Night</p>
           </Link>
-
-          <Link href="/vault" className="bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 p-5 rounded-3xl shadow-sm hover:bg-stone-300 dark:hover:bg-stone-700 transition-all flex flex-col justify-between group h-32">
-            <div className="flex justify-between items-start">
-              <h2 className="text-sm font-bold">Tresor</h2>
-              <span className="text-xl group-hover:scale-110 transition-transform">🔒</span>
-            </div>
-            <p className="text-xs text-stone-500 opacity-80">Dokumente</p>
+          <Link href="/checkin" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Check-In</h2><span className="text-xl group-hover:scale-110 transition-transform">💬</span></div>
+            <p className="text-xs text-[#C5A38E]">Weekly Sync</p>
+          </Link>
+          <Link href="/timeline" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-800 p-5 rounded-3xl shadow-sm hover:border-[#C5A38E] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Kalender</h2><span className="text-xl group-hover:scale-110 transition-transform">📅</span></div>
+            <p className="text-xs text-stone-400">Timeline</p>
+          </Link>
+          <Link href="/gifts" className="bg-stone-900 text-white border border-stone-700 p-5 rounded-3xl shadow-sm hover:border-[#C5A38E] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold text-[#C5A38E]">Geheim</h2><span className="text-xl group-hover:scale-110 transition-transform">🤫</span></div>
+            <p className="text-xs text-stone-400">Geschenke</p>
+          </Link>
+          <Link href="/vault" className="bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 p-5 rounded-3xl shadow-sm hover:bg-stone-300 transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Tresor</h2><span className="text-xl group-hover:scale-110 transition-transform">🔒</span></div>
+            <p className="text-xs text-stone-500">Dokumente</p>
+          </Link>
+          <Link href="/subscriptions" className="bg-[#C5A38E] text-white p-5 rounded-3xl shadow-lg hover:bg-[#A38572] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Abos</h2><span className="text-xl group-hover:scale-110 transition-transform">📡</span></div>
+            <p className="text-xs text-white/80">Radar</p>
+          </Link>
+          <Link href="/wiki" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Wiki</h2><span className="text-xl group-hover:scale-110 transition-transform">📖</span></div>
+            <p className="text-xs text-stone-400">Handbuch</p>
+          </Link>
+          <Link href="/trips" className="bg-white dark:bg-stone-900 text-stone-900 dark:text-white border border-stone-200 dark:border-stone-800 p-5 rounded-3xl shadow-sm hover:border-[#C5A38E] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Koffer</h2><span className="text-xl group-hover:scale-110 transition-transform">🧳</span></div>
+            <p className="text-xs text-stone-500">Reisen</p>
+          </Link>
+          <Link href="/map" className="bg-[#C5A38E] text-white p-5 rounded-3xl shadow-lg hover:bg-[#A38572] transition flex flex-col justify-between h-28 group">
+            <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Weltkarte</h2><span className="text-xl group-hover:scale-110 transition-transform">🌍</span></div>
+            <p className="text-xs text-white/80">Tracker</p>
           </Link>
         </div>
 
         {/* FINANZEN & FAIR SHARE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
           <section className="bg-white dark:bg-stone-900 p-6 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800 space-y-6">
             <div>
               <h2 className="text-sm font-bold text-stone-400 uppercase mb-4">Dein Netto-Einkommen</h2>
@@ -146,11 +149,10 @@ export default async function Dashboard() {
                 <button className="bg-stone-800 dark:bg-stone-700 text-white px-4 py-2 font-bold rounded-xl text-sm">Update</button>
               </form>
             </div>
-
             <div className="pt-4 border-t border-stone-100 dark:border-stone-800">
               <h2 className="text-sm font-bold text-stone-400 uppercase mb-4 flex justify-between">
                 <span>Fair Share Verteilung</span>
-                <span className="text-[#C5A38E]">Total Fixkosten: € {totalExpenses}</span>
+                <span className="text-[#C5A38E]">Fixkosten: € {totalExpenses}</span>
               </h2>
               <div className="space-y-4">
                 <div>
@@ -220,8 +222,6 @@ export default async function Dashboard() {
 
         {/* BUCKETLISTS */}
         <div className="pt-6 border-t border-stone-200 dark:border-stone-800 space-y-10">
-          
-          {/* Gemeinsame Träume */}
           <section className="space-y-6">
             <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-400"></span> Gemeinsame Träume & Sinking Funds
@@ -231,15 +231,12 @@ export default async function Dashboard() {
                 const isZeroTarget = item.price === 0;
                 const progressPct = isZeroTarget ? 0 : Math.min((item.savedAmount / item.price) * 100, 100);
                 const isReady = !isZeroTarget && progressPct >= 100;
-
                 return (
                   <div key={item.id} className={`bg-white dark:bg-stone-900 p-6 rounded-3xl shadow-sm border ${isReady ? 'border-green-400' : 'border-stone-100 dark:border-stone-800'} relative`}>
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <h3 className="text-xl font-bold text-stone-800 dark:text-stone-100">{item.title} {item.isSurprise ? '🎁' : ''}</h3>
-                        <p className="text-sm text-stone-400">
-                          {isZeroTarget ? 'Offenes Ziel (Sparen ohne Limit)' : `Ziel: € ${item.price.toLocaleString('de-DE')}`}
-                        </p>
+                        <p className="text-sm text-stone-400">{isZeroTarget ? 'Offenes Ziel' : `Ziel: € ${item.price.toLocaleString('de-DE')}`}</p>
                       </div>
                       {isReady ? (
                         <form action={async () => { "use server"; await markItemCompleted(item.id); }}>
@@ -251,7 +248,6 @@ export default async function Dashboard() {
                         </form>
                       )}
                     </div>
-                    
                     <div className="space-y-3">
                       <div className="flex justify-between items-end">
                         <div className="text-[10px] uppercase font-bold tracking-tighter text-stone-400">
@@ -277,7 +273,6 @@ export default async function Dashboard() {
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Deine Liste */}
             <section className="space-y-4 opacity-80">
               <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Deine Liste</h2>
               <div className="grid gap-3">
@@ -285,7 +280,7 @@ export default async function Dashboard() {
                   <div key={item.id} className="bg-stone-50 dark:bg-stone-900/50 p-4 rounded-2xl border border-stone-200 dark:border-stone-800 flex justify-between items-center">
                     <div>
                       <p className="font-medium text-stone-600 dark:text-stone-400">{item.title} {item.isSurprise ? '🎁' : ''}</p>
-                      <p className="text-xs text-stone-400">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel (0€)'}</p>
+                      <p className="text-xs text-stone-400">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel'}</p>
                     </div>
                     <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
                       <button className="text-stone-400 hover:text-red-400">✕</button>
@@ -294,8 +289,6 @@ export default async function Dashboard() {
                 ))}
               </div>
             </section>
-
-            {/* Partner Liste */}
             <section className="space-y-4">
               <h2 className="text-xs font-bold text-[#C5A38E] uppercase tracking-widest">Post von {partner?.name}</h2>
               <div className="grid gap-3">
@@ -304,16 +297,16 @@ export default async function Dashboard() {
                     {item.isSurprise && (
                        <div className="absolute inset-0 bg-stone-900/95 flex items-center justify-between p-4 z-10">
                           <span className="text-white font-bold text-sm flex items-center gap-2">🎁 Überraschung (€ {item.price})</span>
-                          <form action={async () => { "use server"; await approveBucketItem(item.id); }}><button className="bg-[#C5A38E] text-white px-4 py-1.5 rounded-lg text-xs font-bold">Blind Zustimmen</button></form>
+                          <form action={async () => { "use server"; await approveBucketItem(item.id); }}><button className="bg-[#C5A38E] text-white px-4 py-1.5 rounded-lg text-xs font-bold">Zustimmen</button></form>
                        </div>
                     )}
                     <div className={item.isSurprise ? "opacity-0" : ""}>
                       <p className="font-medium text-stone-800 dark:text-stone-200">{item.title}</p>
-                      <p className="text-xs text-[#C5A38E] font-bold">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel (0€)'}</p>
+                      <p className="text-xs text-[#C5A38E] font-bold">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel'}</p>
                     </div>
                     {!item.isSurprise && (
                       <form action={async () => { "use server"; await approveBucketItem(item.id); }}>
-                        <button className="bg-[#C5A38E] text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-md">👍 Zustimmen</button>
+                        <button className="bg-[#C5A38E] text-white px-4 py-1.5 rounded-xl text-xs font-bold">👍 Zustimmen</button>
                       </form>
                     )}
                   </div>
@@ -323,7 +316,7 @@ export default async function Dashboard() {
           </div>
         </div>
 
-        {/* FLOATING ACTION BAR: Neuer Traum */}
+        {/* FLOATING ACTION BAR */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-50">
           <form action={async (formData) => { 
             "use server"; 
@@ -335,7 +328,7 @@ export default async function Dashboard() {
           }} className="bg-stone-900/95 dark:bg-black/90 backdrop-blur-md p-3 rounded-2xl shadow-2xl flex flex-col gap-2 border border-stone-700/50">
             <div className="flex gap-2">
               <input name="title" placeholder="Neuer Traum / Ziel..." className="flex-1 bg-stone-800 border-none text-white text-sm px-4 py-2 rounded-xl outline-none" required />
-              <input name="price" type="number" placeholder="€ (Optional)" className="w-24 bg-stone-800 border-none text-white text-sm px-3 py-2 rounded-xl outline-none" />
+              <input name="price" type="number" placeholder="€" className="w-24 bg-stone-800 border-none text-white text-sm px-3 py-2 rounded-xl outline-none" />
               <button type="submit" className="bg-[#C5A38E] text-white p-2 rounded-xl hover:bg-[#A38572] transition px-4 font-bold">+</button>
             </div>
             <label className="flex items-center gap-2 px-2 text-xs text-stone-400 cursor-pointer">
@@ -344,7 +337,6 @@ export default async function Dashboard() {
             </label>
           </form>
         </div>
-
       </div>
     </div>
   );
