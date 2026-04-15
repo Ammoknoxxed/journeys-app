@@ -87,8 +87,8 @@ export default async function Dashboard() {
           </div>
         </header>
 
-        {/* QUICK APPS HUB */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {/* QUICK APPS HUB (Alle 13 Apps) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
           <Link href="/shopping" className="bg-stone-800 dark:bg-stone-900 text-white p-5 rounded-3xl shadow-lg hover:bg-stone-700 transition flex flex-col justify-between h-28 group">
             <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Shopping</h2><span className="text-xl group-hover:scale-110 transition-transform">🛒</span></div>
             <p className="text-xs text-stone-400">{openShoppingItemsCount} Artikel</p>
@@ -136,6 +136,12 @@ export default async function Dashboard() {
           <Link href="/map" className="bg-[#C5A38E] text-white p-5 rounded-3xl shadow-lg hover:bg-[#A38572] transition flex flex-col justify-between h-28 group">
             <div className="flex justify-between items-start"><h2 className="text-sm font-bold">Weltkarte</h2><span className="text-xl group-hover:scale-110 transition-transform">🌍</span></div>
             <p className="text-xs text-white/80">Tracker</p>
+          </Link>
+          {/* Smart Home Button */}
+          <Link href="/smarthome" className="bg-stone-900 text-white border border-stone-700 p-5 rounded-3xl shadow-lg hover:border-[#C5A38E] hover:shadow-[#C5A38E]/20 transition-all flex flex-col justify-between h-28 group relative overflow-hidden">
+            <div className="absolute -right-2 -top-2 w-12 h-12 bg-[#C5A38E]/20 rounded-full blur-xl group-hover:bg-[#C5A38E]/40 transition-colors"></div>
+            <div className="flex justify-between items-start relative z-10"><h2 className="text-sm font-bold text-[#C5A38E]">Smart Home</h2><span className="text-xl group-hover:scale-110 transition-transform">💡</span></div>
+            <p className="text-xs text-stone-400 relative z-10">Zentrale</p>
           </Link>
         </div>
 

@@ -1,3 +1,4 @@
+// src/app/smarthome/page.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -24,24 +25,9 @@ export default async function SmartHomePage() {
           <ThemeToggle />
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-           <div className="bg-stone-900 p-4 rounded-3xl border border-stone-800 flex items-center gap-4 shadow-xl">
-              <div className="text-2xl">📺</div>
-              <div><p className="text-[10px] text-stone-500 uppercase font-bold">Samsung GQ55Q60D</p><p className="text-xs text-white">Standby</p></div>
-           </div>
-           <div className="bg-stone-900 p-4 rounded-3xl border border-stone-800 flex items-center gap-4 shadow-xl">
-              <div className="text-2xl">🧹</div>
-              <div><p className="text-[10px] text-stone-500 uppercase font-bold">Xiaomi T12</p><p className="text-xs text-white">Dock (100%)</p></div>
-           </div>
-           <div className="bg-stone-900 p-4 rounded-3xl border border-stone-800 flex items-center gap-4 shadow-xl">
-              <div className="text-2xl">🌈</div>
-              <div><p className="text-[10px] text-stone-500 uppercase font-bold">Govee RGBIC</p><p className="text-xs text-white">Szenen bereit</p></div>
-           </div>
-        </div>
-
         {rooms.length === 0 ? (
           <div className="bg-white dark:bg-stone-900 p-10 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 text-center">
-            <p className="text-stone-500 italic">Noch keine Schalter in der Datenbank.</p>
+            <p className="text-stone-500 italic">Noch keine Geräte in der Datenbank.</p>
           </div>
         ) : (
           rooms.map(room => (
@@ -78,19 +64,34 @@ export default async function SmartHomePage() {
           ))
         )}
 
-        <form action={async (formData) => { "use server"; await addSmartDevice(formData.get("name") as string, formData.get("type") as string, formData.get("room") as string); }} className="bg-stone-900 p-6 rounded-3xl shadow-xl flex flex-col gap-4 mt-8">
+        <form action={async (formData) => { 
+          "use server"; 
+          await addSmartDevice(
+            formData.get("name") as string, 
+            formData.get("type") as string, 
+            formData.get("room") as string,
+            formData.get("eid") as string,
+            formData.get("model") as string
+          ); 
+        }} className="bg-stone-900 p-6 rounded-3xl shadow-xl flex flex-col gap-4 mt-8">
           <h2 className="text-[#C5A38E] text-xs uppercase font-bold tracking-widest">Neues Gerät anlegen</h2>
-          <div className="flex flex-col md:flex-row gap-3">
-            <input name="name" placeholder="Gerät (z.B. Govee H618F)" className="flex-1 bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" required />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input name="name" placeholder="Name (z.B. Samsung TV)" className="bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" required />
             <select name="type" className="bg-stone-800 text-white p-3 rounded-xl outline-none text-sm font-bold">
               <option value="LIGHT">💡 Licht</option>
               <option value="TV">📺 Smart TV</option>
               <option value="VACUUM">🧹 Saugroboter</option>
               <option value="PLUG">🔌 Steckdose</option>
             </select>
-            <input name="room" placeholder="Raum (z.B. Wohnzimmer)" className="flex-1 bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" required />
-            <button type="submit" className="bg-[#C5A38E] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#A38572] transition">Speichern</button>
+            <input name="room" placeholder="Raum (z.B. Wohnzimmer)" className="bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" required />
+            <input name="eid" placeholder="MAC Adresse / Samsung ID" className="bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" />
+            <input name="model" placeholder="Modell (nur bei Govee, z.B. H618F)" className="bg-stone-800 text-white p-3 rounded-xl outline-none text-sm" />
           </div>
+          
+          <button type="submit" className="bg-[#C5A38E] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#A38572] transition">
+            Gerät speichern
+          </button>
         </form>
       </div>
     </div>

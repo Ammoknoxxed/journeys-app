@@ -322,21 +322,68 @@ export async function addTrip(title: string, destination: string, dateStr: strin
 }
 
 // --- SMART HOME LOGIK ---
-export async function addSmartDevice(name: string, type: string, room: string) {
+export async function addSmartDevice(name: string, type: string, room: string, externalId?: string, modelCode?: string) {
   const session = await getServerSession(authOptions);
   await prisma.smartDevice.create({
-    data: { name, type, room, addedBy: session?.user?.name || "System" }
+    data: { 
+      name, 
+      type, 
+      room, 
+      externalId, 
+      modelCode,
+      addedBy: session?.user?.name || "System" 
+    }
   });
   revalidatePath("/smarthome");
 }
 
 export async function toggleSmartDevice(id: string, currentState: boolean) {
-  // Hier wird später die API-Logik zu Govee / Samsung TV eingefügt
-  await prisma.smartDevice.update({
-    where: { id },
-    data: { isActive: !currentState }
-  });
-  revalidatePath("/smarthome");
+  const device = await prisma.smartDevice.findUnique({ where: { id } });
+  if (!device) return;
+
+  const newState = !currentState;
+
+  try {
+    // 1. Govee Steuerung
+    if (device.type === 'LIGHT' && device.externalId && device.modelCode) {
+      const GOVEE_KEY = process.env.GOVEE_API_KEY;
+      if (GOVEE_KEY) {
+        await fetch('https://developer-api.govee.com/v1/devices/control', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Govee-API-Key': GOVEE_KEY },
+          body: JSON.stringify({
+            device: device.externalId,
+            model: device.modelCode,
+            cmd: { name: "turn", value: newState ? "on" : "off" }
+          })
+        });
+      }
+    }
+
+    // 2. Samsung SmartThings Steuerung
+    if (device.type === 'TV' && device.externalId) {
+      const ST_TOKEN = process.env.SMARTTHINGS_TOKEN;
+      if (ST_TOKEN) {
+        await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ST_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            commands: [{ component: "main", capability: "switch", command: newState ? "on" : "off" }]
+          })
+        });
+      }
+    }
+
+    // 3. Status in Datenbank aktualisieren
+    await prisma.smartDevice.update({
+      where: { id },
+      data: { isActive: newState }
+    });
+
+    revalidatePath("/smarthome");
+  } catch (error) {
+    console.error("Smart Home API Error:", error);
+  }
 }
 
 export async function deleteSmartDevice(id: string) {

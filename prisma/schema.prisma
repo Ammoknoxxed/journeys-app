@@ -1,4 +1,5 @@
 // prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -171,7 +172,9 @@ model CheckInAnswer {
 model SmartDevice {
   id          String   @id @default(cuid())
   name        String
-  type        String   
+  type        String   // LIGHT, TV, VACUUM
+  externalId  String?  // MAC Adresse oder Samsung Device ID
+  modelCode   String?  // z.B. H618F
   isActive    Boolean  @default(false)
   value       String?  
   room        String   @default("Wohnzimmer")
