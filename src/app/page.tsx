@@ -13,35 +13,19 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { 
   LayoutDashboard, Wallet, ShoppingCart, Utensils, 
   Map, Heart, Lock, BookOpen, Calendar, Sparkles, 
-  Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList
+  Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
+  Plus, X, Check
 } from "lucide-react";
 
 // --- DYNAMISCHE GIMMICKS ---
 function getRandomGreeting() {
   const hour = new Date().getHours();
-  
-  const morningGreetings = [
-    "Guten Morgen", "Zeit für den ersten Kaffee", "Rise and shine", 
-    "Ein neuer erfolgreicher Tag", "Guten Start in den Tag", 
-    "System online, guten Morgen", "Bereit für den Tag"
-  ];
-  
-  const dayGreetings = [
-    "Guten Tag", "Willkommen im Headquarter", "Hallo zurück", 
-    "Läuft alles nach Plan?", "Management-Konsole aktiv", 
-    "Erfolgreichen Nachmittag", "System-Check bestanden"
-  ];
-  
-  const eveningGreetings = [
-    "Guten Abend", "Zeit zum Abschalten", "Abendliche Grüße", 
-    "Tagesziele erreicht?", "Feierabend-Modus aktiviert", 
-    "Gute Arbeit heute", "Willkommen zur Date-Night-Planung"
-  ];
-
+  const morningGreetings = ["Guten Morgen", "Zeit für den ersten Kaffee", "Rise and shine", "System online"];
+  const dayGreetings = ["Guten Tag", "Willkommen im HQ", "Management-Konsole aktiv", "Läuft alles nach Plan?"];
+  const eveningGreetings = ["Guten Abend", "Zeit zum Abschalten", "Feierabend-Modus aktiviert", "Tagesziele erreicht?"];
   let selection = dayGreetings;
   if (hour < 12) selection = morningGreetings;
   else if (hour > 18) selection = eveningGreetings;
-
   return selection[Math.floor(Math.random() * selection.length)];
 }
 
@@ -49,31 +33,16 @@ function getRandomCatStatus() {
   const names = ["Mäusschen", "Püppi", "Puppi", "Mietze", "Fratzratz"];
   const statuses = [
     { text: "Zufrieden", color: "text-emerald-500" },
-    { text: "Schläft tief & fest", color: "text-emerald-500" },
-    { text: "Verlangt Futter", color: "text-amber-500" },
-    { text: "Beobachtet euch", color: "text-blue-500" },
-    { text: "Plant die Weltherrschaft", color: "text-rose-500" },
-    { text: "Hat ihre 5 Minuten", color: "text-amber-500" },
-    { text: "Putzt sich", color: "text-emerald-500" },
-    { text: "Schnurrt auf Level 10", color: "text-blue-500" },
-    { text: "Ignoriert euch gekonnt", color: "text-stone-500" },
-    { text: "Belagert den Lieblingsplatz", color: "text-emerald-500" },
-    { text: "Wartet auf Streicheleinheiten", color: "text-rose-500" },
-    { text: "Patrouilliert das Revier", color: "text-blue-500" },
-    { text: "Hat ein Insekt entdeckt", color: "text-amber-500" },
-    { text: "Träumt von Leckerlis", color: "text-emerald-500" },
-    { text: "Versteckt sich", color: "text-stone-500" },
-    { text: "Bettelt am Tisch", color: "text-amber-500" },
-    { text: "Macht Yoga-Posen", color: "text-blue-500" },
-    { text: "Wärmt sich auf", color: "text-rose-500" },
-    { text: "Ist im Kuschel-Modus", color: "text-emerald-500" },
-    { text: "Starrt in die Leere", color: "text-stone-500" }
+    { text: "Schläft tief", color: "text-emerald-500" },
+    { text: "Hungrig", color: "text-amber-500" },
+    { text: "Plant Unfug", color: "text-rose-500" },
+    { text: "Auf Patrouille", color: "text-blue-500" },
+    { text: "Schnurrt", color: "text-emerald-500" }
   ];
-
-  const randomName = names[Math.floor(Math.random() * names.length)];
-  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
-  return { name: randomName, status: randomStatus.text, color: randomStatus.color };
+  return { 
+    name: names[Math.floor(Math.random() * names.length)], 
+    status: statuses[Math.floor(Math.random() * statuses.length)] 
+  };
 }
 // ---------------------------
 
@@ -119,294 +88,326 @@ export default async function DashboardPage() {
   const myIndividualItems = activeItems.filter(i => i.creatorId === currentUser?.id && i.approverId === null);
   const partnerIndividualItems = activeItems.filter(i => i.creatorId === partner?.id && i.approverId === null);
 
-  // Gimmicks generieren
   const greeting = getRandomGreeting();
   const catGimmick = getRandomCatStatus();
 
-  // Abteilungen
-  const categories = [
-    { title: "Kommandozentrale", desc: "Smart Home", icon: <LayoutDashboard size={20} />, href: "/smarthome", color: "bg-amber-500/10 text-amber-600" },
-    { title: "Finanz-Abos", desc: "Subscriptions", icon: <TrendingUp size={20} />, href: "/subscriptions", color: "bg-emerald-500/10 text-emerald-600" },
-    { title: "Versorgungsamt", desc: `${openShoppingItemsCount} Artikel offen`, icon: <ShoppingCart size={20} />, href: "/shopping", color: "bg-blue-500/10 text-blue-600" },
-    { title: "Putz-Geschwader", desc: `${currentUser?.chorePoints || 0} Pkt gesammelt`, icon: <CheckCircle2 size={20} />, href: "/chores", color: "bg-stone-500/10 text-stone-600" },
-    { title: "Küchen-Chef", desc: "Meal Prep", icon: <Utensils size={20} />, href: "/mealprep", color: "bg-orange-500/10 text-orange-600" },
-    { title: "Date Night", desc: "Roulette", icon: <Heart size={20} />, href: "/roulette", color: "bg-pink-500/10 text-pink-600" },
-    { title: "Expeditionen", desc: "Weltkarte", icon: <Map size={20} />, href: "/map", color: "bg-cyan-500/10 text-cyan-600" },
-    { title: "Das Archiv", desc: "Home Wiki", icon: <BookOpen size={20} />, href: "/wiki", color: "bg-indigo-500/10 text-indigo-600" },
-    { title: "Gift Vault", desc: "Geheime Geschenke", icon: <Lock size={20} />, href: "/gifts", color: "bg-violet-500/10 text-violet-600" },
-    { title: "Timeline", desc: "Kalender", icon: <Calendar size={20} />, href: "/timeline", color: "bg-sky-500/10 text-sky-600" },
-    { title: "Weekly Sync", desc: "Check-In", icon: <ClipboardList size={20} />, href: "/checkin", color: "bg-lime-500/10 text-lime-600" },
-    { title: "Tresor", desc: "Dokumente", icon: <Wallet size={20} />, href: "/vault", color: "bg-stone-300 text-stone-700" },
+  // App Drawer (Kompakt)
+  const apps = [
+    { title: "Smart Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
+    { title: "Abos", icon: <TrendingUp size={24} />, href: "/subscriptions", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-500" },
+    { title: "Shopping", icon: <ShoppingCart size={24} />, href: "/shopping", badge: openShoppingItemsCount, color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-500" },
+    { title: "Putzplan", icon: <CheckCircle2 size={24} />, href: "/chores", color: "bg-stone-200 text-stone-700 dark:bg-stone-500/20 dark:text-stone-400" },
+    { title: "Meal Prep", icon: <Utensils size={24} />, href: "/mealprep", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-500" },
+    { title: "Date Night", icon: <Heart size={24} />, href: "/roulette", color: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-500" },
+    { title: "Weltkarte", icon: <Map size={24} />, href: "/map", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-500" },
+    { title: "Home Wiki", icon: <BookOpen size={24} />, href: "/wiki", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-500" },
+    { title: "Gifts", icon: <Lock size={24} />, href: "/gifts", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-500" },
+    { title: "Timeline", icon: <Calendar size={24} />, href: "/timeline", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-500" },
+    { title: "Check-In", icon: <ClipboardList size={24} />, href: "/checkin", color: "bg-lime-100 text-lime-700 dark:bg-lime-500/20 dark:text-lime-500" },
+    { title: "Tresor", icon: <Wallet size={24} />, href: "/vault", color: "bg-stone-300 text-stone-800 dark:bg-stone-700/50 dark:text-stone-300" },
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] dark:bg-stone-950 text-stone-900 dark:text-stone-100 transition-colors duration-500 pb-32">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-16 space-y-16">
-        
-        {/* HEADER */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[#C5A38E] font-medium tracking-[0.2em] uppercase text-[10px]">
-              <Sparkles size={12} />
-              <span>Established 2026 — Die Höhle</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-light tracking-tighter" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Management
-            </h1>
-            <p className="text-stone-400 dark:text-stone-500 font-light text-xl italic">
-              {greeting}, Mike & Sophie.
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-4">
-            <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm transition-all hover:scale-105 cursor-default">
-              <Cat size={16} className="text-[#C5A38E]" />
-              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-widest">
-                {catGimmick.name} Status: <span className={catGimmick.color}>{catGimmick.status}</span>
-              </span>
-            </div>
-            <ThemeToggle />
-          </div>
-        </header>
-
-        {/* CASHFLOW & INCOME SUMMARY */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#C5A38E] text-white p-8 rounded-[2rem] shadow-xl shadow-amber-900/10 relative overflow-hidden flex flex-col justify-between">
-            <div className="relative z-10">
-              <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1 opacity-80">Netto Cashflow / Monat</p>
-              <h2 className="text-5xl font-light tabular-nums">€ {freeCashflow.toLocaleString('de-DE', { maximumFractionDigits: 0 })}</h2>
-            </div>
-            <div className="absolute -right-4 -bottom-4 size-40 bg-white opacity-5 rounded-full blur-2xl"></div>
-          </div>
-
-          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-6 md:p-8 rounded-[2rem] flex flex-col justify-center gap-4">
-             <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Dein Netto-Einkommen</h2>
-             
-             <form action={async (formData) => { 
-                "use server"; 
-                const raw = formData.get("income") as string;
-                if (!raw) return;
-                const parsed = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
-                if (!isNaN(parsed) && currentUser) {
-                  await prisma.user.update({ where: { id: currentUser.id }, data: { netIncome: parsed } });
-                  revalidatePath("/");
-                }
-             }} className="flex items-center gap-3">
-                <input name="income" type="text" inputMode="decimal" placeholder={`€ ${currentUser?.netIncome}`} className="flex-1 px-5 py-3 bg-stone-50 dark:bg-stone-950 dark:text-stone-200 rounded-xl outline-none border border-stone-100 dark:border-stone-800 text-lg font-light" required />
-                <button className="bg-stone-900 dark:bg-stone-800 hover:bg-[#C5A38E] text-white px-6 py-3 font-bold rounded-xl text-sm transition-colors">Update</button>
-             </form>
-          </div>
-        </div>
-
-        {/* ABTEILUNGEN (App Hub) */}
+    <div className="min-h-screen bg-[#FDFCFB] dark:bg-stone-950 text-stone-900 dark:text-stone-100 pb-40 selection:bg-[#C5A38E]/30 font-sans">
+      
+      {/* 1. COMPACT HEADER */}
+      <header className="sticky top-0 z-40 bg-[#FDFCFB]/80 dark:bg-stone-950/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-stone-800/50 px-4 md:px-8 py-4 flex justify-between items-center">
         <div>
-          <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-6">Alle Abteilungen</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {categories.map((cat) => (
-              <Link key={cat.title} href={cat.href}>
-                <div className="group bg-white dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 p-6 rounded-[1.5rem] hover:bg-stone-50 dark:hover:bg-stone-900 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md">
-                  <div className={`w-10 h-10 ${cat.color} rounded-xl flex items-center justify-center mb-6 group-hover:-translate-y-1 transition-transform`}>
-                    {cat.icon}
-                  </div>
-                  <p className="text-sm font-semibold mb-1">{cat.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-stone-400 font-bold">{cat.desc}</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            Die Höhle <span className="text-[#C5A38E] font-light">HQ</span>
+          </h1>
+          <p className="text-[10px] md:text-xs text-stone-500 uppercase tracking-widest">{greeting}, {currentUser?.name}.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-stone-900 rounded-full border border-stone-200 dark:border-stone-800">
+            <Cat size={14} className="text-[#C5A38E]" />
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+              {catGimmick.name}: <span className={catGimmick.status.color}>{catGimmick.status.text}</span>
+            </span>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 md:px-8 mt-6 md:mt-10 space-y-8 md:space-y-12">
+        
+        {/* 2. THE APP DRAWER (iOS Style Grid) */}
+        <section>
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-y-6 gap-x-2">
+            {apps.map((app) => (
+              <Link key={app.title} href={app.href} className="group flex flex-col items-center gap-2 relative">
+                <div className={`w-14 h-14 md:w-16 md:h-16 ${app.color} rounded-[1.25rem] flex items-center justify-center shadow-sm group-hover:scale-105 group-active:scale-95 transition-all duration-200`}>
+                  {app.icon}
+                  {app.badge ? (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-[#FDFCFB] dark:border-stone-950 shadow-sm">
+                      {app.badge}
+                    </div>
+                  ) : null}
                 </div>
+                <span className="text-[10px] font-medium text-stone-600 dark:text-stone-400 text-center leading-tight px-1">
+                  {app.title}
+                </span>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* FINANZEN DETAIL (Fixkosten & Variablen) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Fair Share & Fixkosten */}
-          <section className="bg-white dark:bg-stone-900 p-8 rounded-[2rem] border border-stone-200 dark:border-stone-800 flex flex-col shadow-sm">
-            <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-6 flex justify-between">
-              <span>Fair Share Verteilung</span>
-              <span className="text-[#C5A38E]">Fixkosten: € {totalExpenses}</span>
-            </h2>
-            <div className="space-y-5 mb-8">
+        {/* 3. FINANCE BENTO BOX */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          
+          {/* Main Cashflow Card */}
+          <div className="md:col-span-7 lg:col-span-8 bg-[#C5A38E] text-white p-6 md:p-8 rounded-3xl shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px]">
+            <div className="relative z-10">
+              <p className="text-xs uppercase tracking-widest font-bold opacity-80 mb-2">Haushalts-Cashflow</p>
+              <h2 className="text-5xl md:text-6xl font-light tracking-tighter tabular-nums">€ {freeCashflow.toLocaleString('de-DE', { maximumFractionDigits: 0 })}</h2>
+            </div>
+            
+            <div className="relative z-10 mt-6 pt-4 border-t border-white/20 flex flex-col sm:flex-row justify-between gap-4">
               <div>
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="font-bold uppercase tracking-wider">{currentUser?.name}</span>
-                  <span className="text-stone-500">{(mySharePct * 100).toFixed(0)}% (Soll: € {myFairCost.toFixed(0)})</span>
-                </div>
-                <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full flex overflow-hidden"><div className="bg-stone-800 dark:bg-stone-600 h-full" style={{ width: `${mySharePct * 100}%` }}></div></div>
+                <p className="text-[10px] uppercase font-bold opacity-80">Dein Netto-Einkommen</p>
+                <form action={async (formData) => { 
+                  "use server"; 
+                  const raw = formData.get("income") as string;
+                  if (!raw) return;
+                  const parsed = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+                  if (!isNaN(parsed) && currentUser) {
+                    await prisma.user.update({ where: { id: currentUser.id }, data: { netIncome: parsed } });
+                    revalidatePath("/");
+                  }
+                }} className="flex items-center gap-2 mt-1">
+                  <input name="income" type="text" inputMode="decimal" placeholder={`€ ${currentUser?.netIncome}`} className="w-24 px-2 py-1.5 bg-black/10 rounded-lg outline-none placeholder:text-white/60 text-sm font-medium border border-transparent focus:border-white/30 transition-colors" required />
+                  <button className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">Save</button>
+                </form>
               </div>
-              <div>
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="font-bold uppercase tracking-wider">{partner?.name || 'Partner'}</span>
-                  <span className="text-stone-500">{(partnerSharePct * 100).toFixed(0)}% (Soll: € {partnerFairCost.toFixed(0)})</span>
-                </div>
-                <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full flex overflow-hidden"><div className="bg-[#C5A38E] h-full" style={{ width: `${partnerSharePct * 100}%` }}></div></div>
+              <div className="flex flex-col justify-end">
+                <span className="text-[10px] uppercase font-bold opacity-80 text-right">Fixkosten Gesamt</span>
+                <span className="text-lg font-bold text-right tracking-tight">€ {totalExpenses}</span>
               </div>
             </div>
+            {/* Dekorativer Hintergrund */}
+            <div className="absolute -right-10 -top-10 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+          </div>
 
-            <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">Fixkosten</h2>
-            <div className="flex-1 space-y-3 overflow-y-auto max-h-40 mb-6 pr-2">
+          {/* Fair Share Card */}
+          <div className="md:col-span-5 lg:col-span-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-6 md:p-8 rounded-3xl flex flex-col justify-center gap-6 shadow-sm">
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Fair Share Verteilung</h3>
+            
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="font-bold text-stone-700 dark:text-stone-200">{currentUser?.name}</span>
+                <span className="text-stone-500 font-medium">Soll: € {myFairCost.toFixed(0)}</span>
+              </div>
+              <div className="h-2 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                <div className="bg-stone-800 dark:bg-stone-500 h-full rounded-full" style={{ width: `${mySharePct * 100}%` }}></div>
+              </div>
+              <p className="text-[10px] text-stone-400 mt-1 text-right">{(mySharePct * 100).toFixed(0)}% Anteil</p>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="font-bold text-[#C5A38E]">{partner?.name || 'Partner'}</span>
+                <span className="text-stone-500 font-medium">Soll: € {partnerFairCost.toFixed(0)}</span>
+              </div>
+              <div className="h-2 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                <div className="bg-[#C5A38E] h-full rounded-full" style={{ width: `${partnerSharePct * 100}%` }}></div>
+              </div>
+              <p className="text-[10px] text-stone-400 mt-1 text-right">{(partnerSharePct * 100).toFixed(0)}% Anteil</p>
+            </div>
+          </div>
+
+        </section>
+
+        {/* 4. DAILY OPERATIONS (Lists) */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Fixkosten */}
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[350px]">
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">Fixkosten-Radar</h3>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-1 overscroll-contain scrollbar-thin">
               {obligations.map(ob => (
-                <div key={ob.id} className="flex justify-between items-center text-sm border-b border-stone-100 dark:border-stone-800/50 pb-3">
-                  <span className="text-stone-600 dark:text-stone-300">{ob.title}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">€ {ob.amount}</span>
-                    <form action={async () => { "use server"; await deleteObligation(ob.id); }}><button className="text-stone-300 hover:text-red-400">✕</button></form>
+                <div key={ob.id} className="group flex justify-between items-center p-3 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-xl transition-colors">
+                  <span className="text-sm font-medium">{ob.title}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm">€ {ob.amount}</span>
+                    <form action={async () => { "use server"; await deleteObligation(ob.id); }}>
+                      <button className="text-stone-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-950"><X size={14} /></button>
+                    </form>
                   </div>
                 </div>
               ))}
             </div>
-            <form action={async (formData) => { "use server"; await addObligation(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="flex gap-2 mt-auto">
-              <input name="title" placeholder="Miete, Strom..." className="flex-1 text-sm p-4 bg-stone-50 dark:bg-stone-950 rounded-xl outline-none" required />
-              <input name="amount" type="number" placeholder="€" className="w-20 text-sm p-4 bg-stone-50 dark:bg-stone-950 rounded-xl outline-none" required />
-              <button className="p-4 bg-[#C5A38E] text-white rounded-xl text-sm font-bold hover:bg-[#A38572] transition">+</button>
+            <form action={async (formData) => { "use server"; await addObligation(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-2">
+              <input name="title" placeholder="Miete, Strom..." className="flex-1 min-w-0 px-4 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50" required />
+              <input name="amount" type="number" inputMode="decimal" placeholder="€" className="w-20 px-3 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 text-center" required />
+              <button className="w-12 h-12 bg-stone-900 dark:bg-stone-800 text-white rounded-xl flex items-center justify-center hover:bg-[#C5A38E] transition-colors shadow-sm"><Plus size={18} /></button>
             </form>
-          </section>
+          </div>
 
-          {/* Kassenbons (Dieser Monat) */}
-          <section className="bg-white dark:bg-stone-900 p-8 rounded-[2rem] border border-stone-200 dark:border-stone-800 flex flex-col shadow-sm h-full">
-            <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-6">Kassenbons (Dieser Monat)</h2>
-            <div className="flex-1 space-y-4 overflow-y-auto max-h-[300px] mb-6 pr-2">
+          {/* Kassenbons */}
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[350px]">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Kassenbons (Dieser Monat)</h3>
+              <span className="text-xs font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-md">Total: € {totalVariable.toFixed(0)}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-1 overscroll-contain scrollbar-thin">
               {expenses.map(ex => (
-                <div key={ex.id} className="flex justify-between items-center text-sm border-b border-stone-100 dark:border-stone-800/50 pb-3">
+                <div key={ex.id} className="group flex justify-between items-center p-3 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-xl transition-colors">
                   <div className="flex flex-col">
-                    <span className="font-medium text-stone-700 dark:text-stone-200">{ex.title}</span>
+                    <span className="text-sm font-medium">{ex.title}</span>
                     <span className="text-[10px] text-stone-400 uppercase tracking-wider">{ex.user.name}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-[#C5A38E]">-€ {ex.amount}</span>
-                    <form action={async () => { "use server"; await deleteExpense(ex.id); }}><button className="text-stone-300 hover:text-red-400">✕</button></form>
+                    <span className="text-sm font-bold text-rose-500">-€ {ex.amount}</span>
+                    <form action={async () => { "use server"; await deleteExpense(ex.id); }}>
+                      <button className="text-stone-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-950"><X size={14} /></button>
+                    </form>
                   </div>
                 </div>
               ))}
-              {expenses.length === 0 && <p className="text-stone-400 italic text-sm text-center py-10">Noch keine Ausgaben diesen Monat.</p>}
+              {expenses.length === 0 && <p className="text-stone-400 italic text-sm text-center py-10">Alles sauber diesen Monat!</p>}
             </div>
-            <form action={async (formData) => { "use server"; await addExpense(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="flex gap-2 mt-auto">
-              <input name="title" placeholder="Rewe, DM, Tanken..." className="flex-1 text-sm p-4 bg-stone-50 dark:bg-stone-950 rounded-xl outline-none" required />
-              <input name="amount" type="number" step="0.01" placeholder="€" className="w-24 text-sm p-4 bg-stone-50 dark:bg-stone-950 rounded-xl outline-none" required />
-              <button className="p-4 bg-stone-900 dark:bg-stone-800 text-white rounded-xl text-sm font-bold hover:bg-[#C5A38E] transition">+</button>
+            <form action={async (formData) => { "use server"; await addExpense(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-2">
+              <input name="title" placeholder="Rewe, Tanken..." className="flex-1 min-w-0 px-4 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50" required />
+              <input name="amount" type="text" inputMode="decimal" placeholder="€" className="w-20 px-3 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 text-center" required />
+              <button className="w-12 h-12 bg-[#C5A38E] text-white rounded-xl flex items-center justify-center hover:bg-[#A38572] transition-colors shadow-sm"><Plus size={18} /></button>
             </form>
-          </section>
-        </div>
+          </div>
 
-        {/* BUCKETLIST & SINKING FUNDS */}
-        <div className="pt-8 border-t border-stone-200 dark:border-stone-800 space-y-12">
-          
-          {/* GEMEINSAME ZIELE */}
-          <section className="space-y-6">
-            <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2">
-              <PiggyBank size={14} className="text-[#C5A38E]" /> Gemeinsame Träume & Sinking Funds
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {jointItems.map(item => {
-                const isZeroTarget = item.price === 0;
-                const progressPct = isZeroTarget ? 0 : Math.min((item.savedAmount / item.price) * 100, 100);
-                const isReady = !isZeroTarget && progressPct >= 100;
-                return (
-                  <div key={item.id} className={`bg-white dark:bg-stone-900 p-8 rounded-[2rem] shadow-sm border ${isReady ? 'border-emerald-500' : 'border-stone-200 dark:border-stone-800'}`}>
-                    <div className="flex justify-between items-start mb-8">
-                      <div>
-                        <h3 className="text-xl font-medium text-stone-800 dark:text-stone-100">{item.title} {item.isSurprise ? '🎁' : ''}</h3>
-                        <p className="text-xs font-bold text-stone-400 mt-1 uppercase tracking-widest">{isZeroTarget ? 'Offenes Ziel' : `Ziel: € ${item.price.toLocaleString('de-DE')}`}</p>
-                      </div>
-                      {isReady ? (
-                        <form action={async () => { "use server"; await markItemCompleted(item.id); }}>
-                          <button className="bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg hover:bg-emerald-600 animate-pulse">Erlebt ✓</button>
-                        </form>
-                      ) : (
-                        <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
-                          <button className="text-stone-300 hover:text-red-400 text-sm">✕</button>
-                        </form>
-                      )}
+        </section>
+
+        {/* 5. BUCKETLIST & DREAMS */}
+        <section className="pt-6 border-t border-stone-200 dark:border-stone-800">
+          <div className="flex items-center gap-2 mb-6">
+            <PiggyBank size={18} className="text-[#C5A38E]" />
+            <h2 className="text-sm font-bold uppercase tracking-widest">Träume & Sinking Funds</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {jointItems.map(item => {
+              const isZeroTarget = item.price === 0;
+              const progressPct = isZeroTarget ? 0 : Math.min((item.savedAmount / item.price) * 100, 100);
+              const isReady = !isZeroTarget && progressPct >= 100;
+              
+              return (
+                <div key={item.id} className={`bg-white dark:bg-stone-900 p-6 rounded-3xl shadow-sm border ${isReady ? 'border-emerald-500/50' : 'border-stone-200 dark:border-stone-800'} relative flex flex-col justify-between min-h-[160px]`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="pr-4">
+                      <h3 className="text-lg font-bold text-stone-800 dark:text-stone-100 leading-tight">{item.title} {item.isSurprise ? '🎁' : ''}</h3>
+                      <p className="text-[10px] font-bold text-stone-400 mt-1 uppercase tracking-widest">{isZeroTarget ? 'Offenes Ziel' : `Ziel: € ${item.price.toLocaleString('de-DE')}`}</p>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                        <div className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#C5A38E]">
-                          Gespart: € {item.savedAmount} {isZeroTarget ? '' : `/ ${progressPct.toFixed(0)}%`}
-                        </div>
-                        {!isReady && (
-                          <form action={async (formData) => { "use server"; await addFundsToItem(item.id, parseFloat(formData.get("amount") as string)); }} className="flex gap-2">
-                             <input name="amount" type="number" placeholder="€" className="w-16 text-xs p-2 bg-stone-50 dark:bg-stone-950 rounded-lg outline-none text-center border border-stone-200 dark:border-stone-800" required />
-                             <button className="bg-stone-900 dark:bg-stone-800 text-white text-[10px] font-bold px-3 rounded-lg hover:bg-[#C5A38E] uppercase tracking-wider transition-colors">Deposit</button>
-                          </form>
-                        )}
-                      </div>
-                      {!isZeroTarget && (
-                        <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
-                          <div className={`h-full transition-all duration-1000 ${isReady ? 'bg-emerald-500' : 'bg-[#C5A38E]'}`} style={{ width: `${progressPct}%` }} />
-                        </div>
-                      )}
-                    </div>
+                    {isReady ? (
+                      <form action={async () => { "use server"; await markItemCompleted(item.id); }}>
+                        <button className="bg-emerald-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Check size={18} /></button>
+                      </form>
+                    ) : (
+                      <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
+                        <button className="text-stone-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center"><X size={16}/></button>
+                      </form>
+                    )}
                   </div>
-                );
-              })}
-              {jointItems.length === 0 && <p className="text-stone-400 italic text-sm">Keine gemeinsamen Träume vorhanden.</p>}
-            </div>
-          </section>
-
-          {/* INDIVIDUELLE ZIELE */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section className="space-y-6">
-              <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Deine Liste</h2>
-              <div className="grid gap-3">
-                {myIndividualItems.map(item => (
-                  <div key={item.id} className="bg-white dark:bg-stone-900/50 p-5 rounded-2xl border border-stone-200 dark:border-stone-800 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.title} {item.isSurprise ? '🎁' : ''}</p>
-                      <p className="text-[10px] text-stone-400 uppercase tracking-wider font-bold mt-1">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel'}</p>
+                  
+                  <div className="space-y-3 mt-auto">
+                    <div className="flex justify-between items-end">
+                      <div className="text-[10px] uppercase font-bold tracking-widest text-[#C5A38E]">
+                        Gespart: € {item.savedAmount} {isZeroTarget ? '' : `/ ${progressPct.toFixed(0)}%`}
+                      </div>
+                      {!isReady && (
+                        <form action={async (formData) => { "use server"; await addFundsToItem(item.id, parseFloat(formData.get("amount") as string)); }} className="flex gap-2">
+                           <input name="amount" type="number" inputMode="decimal" placeholder="€" className="w-16 h-8 text-xs px-2 bg-stone-50 dark:bg-stone-950 rounded-lg outline-none text-center border border-stone-200 dark:border-stone-800 focus:border-[#C5A38E]" required />
+                           <button className="h-8 bg-stone-900 dark:bg-stone-800 text-white text-[10px] font-bold px-3 rounded-lg hover:bg-[#C5A38E] uppercase tracking-wider transition-colors shadow-sm">Save</button>
+                        </form>
+                      )}
                     </div>
-                    <form action={async () => { "use server"; await deleteBucketItem(item.id); }}><button className="text-stone-400 hover:text-red-400">✕</button></form>
+                    {!isZeroTarget && (
+                      <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-1000 ease-out ${isReady ? 'bg-emerald-500' : 'bg-[#C5A38E]'}`} style={{ width: `${progressPct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Eigene Listen & Post */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            
+            {/* Eigene Liste */}
+            <div className="bg-stone-50 dark:bg-stone-900/40 border border-stone-200 dark:border-stone-800 rounded-3xl p-6">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4">Deine Einzel-Träume</h3>
+              <div className="space-y-2">
+                {myIndividualItems.map(item => (
+                  <div key={item.id} className="bg-white dark:bg-stone-900 p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                    <div>
+                      <p className="text-sm font-medium">{item.title} {item.isSurprise ? '🎁' : ''}</p>
+                      <p className="text-[10px] text-stone-400 uppercase tracking-wider font-bold mt-0.5">{item.price > 0 ? `€ ${item.price}` : 'Flex'}</p>
+                    </div>
+                    <form action={async () => { "use server"; await deleteBucketItem(item.id); }}><button className="text-stone-300 hover:text-red-500 p-2"><X size={14}/></button></form>
                   </div>
                 ))}
+                {myIndividualItems.length === 0 && <p className="text-xs text-stone-400 italic">Keine Einzelepisode geplant.</p>}
               </div>
-            </section>
-            
-            <section className="space-y-6">
-              <h2 className="text-xs font-bold text-[#C5A38E] uppercase tracking-widest">Post von {partner?.name}</h2>
-              <div className="grid gap-3">
+            </div>
+
+            {/* Postfach */}
+            <div className="bg-[#C5A38E]/10 border border-[#C5A38E]/20 rounded-3xl p-6">
+              <h3 className="text-[10px] font-bold text-[#C5A38E] uppercase tracking-widest mb-4">Post von {partner?.name || 'Partner'}</h3>
+              <div className="space-y-2">
                 {partnerIndividualItems.map(item => (
-                  <div key={item.id} className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-200/50 dark:border-amber-900/30 flex justify-between items-center relative overflow-hidden">
+                  <div key={item.id} className="bg-white/80 dark:bg-stone-900/80 backdrop-blur-sm p-4 rounded-2xl flex justify-between items-center shadow-sm relative overflow-hidden group">
                     {item.isSurprise && (
-                       <div className="absolute inset-0 bg-stone-900/95 flex items-center justify-between px-5 z-10 backdrop-blur-sm">
-                          <span className="text-white font-medium text-sm">🎁 Überraschung (€ {item.price})</span>
-                          <form action={async () => { "use server"; await approveBucketItem(item.id); }}><button className="bg-[#C5A38E] text-white px-4 py-2 rounded-xl text-xs font-bold transition-transform hover:scale-105">Zustimmen</button></form>
+                       <div className="absolute inset-0 bg-stone-900/95 flex items-center justify-between px-4 z-10">
+                          <span className="text-white font-medium text-xs">🎁 Überraschung (€ {item.price})</span>
+                          <form action={async () => { "use server"; await approveBucketItem(item.id); }}><button className="bg-[#C5A38E] text-white px-3 py-1.5 rounded-lg text-xs font-bold">Approve</button></form>
                        </div>
                     )}
                     <div className={item.isSurprise ? "opacity-0" : ""}>
-                      <p className="font-medium text-stone-800 dark:text-stone-200">{item.title}</p>
-                      <p className="text-[10px] text-[#C5A38E] uppercase tracking-wider font-bold mt-1">{item.price > 0 ? `€ ${item.price}` : 'Flex-Ziel'}</p>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-[10px] text-[#C5A38E] uppercase tracking-wider font-bold mt-0.5">{item.price > 0 ? `€ ${item.price}` : 'Flex'}</p>
                     </div>
                     {!item.isSurprise && (
                       <form action={async () => { "use server"; await approveBucketItem(item.id); }}>
-                        <button className="bg-stone-900 dark:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#C5A38E] transition-colors">Zustimmen</button>
+                        <button className="bg-stone-900 dark:bg-stone-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#C5A38E] transition-colors">Approve</button>
                       </form>
                     )}
                   </div>
                 ))}
+                {partnerIndividualItems.length === 0 && <p className="text-xs text-[#C5A38E]/60 italic">Posteingang leer.</p>}
               </div>
-            </section>
-          </div>
-        </div>
-
-        {/* FLOATING ACTION BAR FOR BUCKETLIST */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-50">
-          <form action={async (formData) => { 
-            "use server"; 
-            await addBucketItem(
-              formData.get("title") as string, 
-              parseFloat(formData.get("price") as string) || 0,
-              formData.get("isSurprise") === "on"
-            ); 
-          }} className="bg-stone-900/95 dark:bg-black/90 backdrop-blur-xl p-4 rounded-3xl shadow-2xl flex flex-col gap-3 border border-stone-700/50">
-            <div className="flex gap-2">
-              <input name="title" placeholder="Neuer Traum / Ziel..." className="flex-1 bg-stone-800/50 border-none text-white text-sm px-5 py-3 rounded-2xl outline-none" required />
-              <input name="price" type="number" placeholder="€" className="w-24 bg-stone-800/50 border-none text-white text-sm px-4 py-3 rounded-2xl outline-none" />
-              <button type="submit" className="bg-[#C5A38E] text-white p-3 rounded-2xl hover:bg-[#A38572] transition px-6 font-bold">+</button>
             </div>
-            <label className="flex items-center gap-2 px-3 text-xs text-stone-400 cursor-pointer w-max">
-              <input type="checkbox" name="isSurprise" className="accent-[#C5A38E] size-3" />
-              Als geheime Überraschung beim Partner anfragen
-            </label>
-          </form>
-        </div>
 
+          </div>
+        </section>
+
+      </main>
+
+      {/* 6. IOS DYNAMIC FLOATING BAR (Bucketlist Form) */}
+      <div className="fixed bottom-6 left-0 right-0 px-4 pointer-events-none z-50 flex justify-center">
+        <form action={async (formData) => { 
+          "use server"; 
+          await addBucketItem(
+            formData.get("title") as string, 
+            parseFloat(formData.get("price") as string) || 0,
+            formData.get("isSurprise") === "on"
+          ); 
+        }} className="w-full max-w-md bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl p-3 md:p-4 rounded-[2rem] shadow-2xl border border-stone-200/50 dark:border-stone-700/50 pointer-events-auto flex flex-col gap-3 transition-transform hover:scale-[1.01]">
+          <div className="flex gap-2">
+            <input name="title" placeholder="Neues Ziel / Traum..." className="flex-1 h-12 bg-stone-100/80 dark:bg-black/40 border-none text-sm px-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#C5A38E]/50 transition-all" required />
+            <input name="price" type="number" inputMode="decimal" placeholder="€" className="w-20 h-12 bg-stone-100/80 dark:bg-black/40 border-none text-sm px-3 rounded-2xl outline-none text-center focus:ring-2 focus:ring-[#C5A38E]/50 transition-all" />
+            <button type="submit" className="h-12 w-12 shrink-0 bg-[#C5A38E] text-white rounded-2xl hover:bg-[#A38572] transition-colors flex items-center justify-center shadow-md"><Plus size={20} /></button>
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <div className="relative flex items-center justify-center">
+                <input type="checkbox" name="isSurprise" className="peer appearance-none w-4 h-4 rounded border border-stone-300 dark:border-stone-600 checked:bg-[#C5A38E] checked:border-[#C5A38E] transition-colors cursor-pointer" />
+                <Check size={10} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
+              </div>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-stone-500 group-hover:text-stone-700 dark:group-hover:text-stone-300 transition-colors">Als geheime Überraschung anfragen</span>
+            </label>
+          </div>
+        </form>
       </div>
+
     </div>
   );
 }
