@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // WICHTIG: In Prisma 7 darf hier keine 'url' stehen, wenn wir den PG-Adapter nutzen!
 }
 
 model User {
@@ -173,8 +174,8 @@ model SmartDevice {
   id          String   @id @default(cuid())
   name        String
   type        String   // LIGHT, TV, VACUUM
-  externalId  String?  // MAC Adresse oder Samsung Device ID
-  modelCode   String?  // z.B. H618F
+  externalId  String?  
+  modelCode   String?  
   isActive    Boolean  @default(false)
   value       String?
   room        String   @default("Wohnzimmer")
@@ -198,14 +199,14 @@ model PetFood {
 
 model LitterBoxLog {
   id        String   @id @default(cuid())
-  boxId     Int      // 1 = Hauptklo, 2 = Zweitklo
+  boxId     Int      
   cleanedBy String
   createdAt DateTime @default(now())
 }
 
 model PetHealthEvent {
   id        String   @id @default(cuid())
-  title     String   // z.B. "Wurmkur", "Impfung", "Check-Up"
+  title     String   
   dueDate   DateTime
 }
 
@@ -219,7 +220,7 @@ model PantryItem {
 
 model EnergyReading {
   id        String   @id @default(cuid())
-  type      String   // STROM, GAS, WASSER
+  type      String   
   value     Float
   date      DateTime @default(now())
 }
@@ -227,7 +228,7 @@ model EnergyReading {
 model SharedContact {
   id        String   @id @default(cuid())
   name      String
-  role      String   // z.B. Vermieter, Tierarzt
+  role      String   
   phone     String?
   email     String?
 }
