@@ -16,6 +16,7 @@ model User {
   netIncome     Float        @default(0) 
   chorePoints   Int          @default(0) 
   
+  incomes       Income[]     @relation("UserIncomes")
   items         BucketItem[] @relation("CreatedItems")
   approvedItems BucketItem[] @relation("ApprovedItems")
   expenses      Expense[]    @relation("UserExpenses")
@@ -25,6 +26,15 @@ model User {
   
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+}
+
+model Income {
+  id          String   @id @default(cuid())
+  title       String   
+  amount      Float
+  date        DateTime @default(now())
+  userId      String
+  user        User     @relation("UserIncomes", fields: [userId], references: [id])
 }
 
 model BucketItem {
@@ -56,7 +66,7 @@ model Expense {
   id          String   @id @default(cuid())
   title       String   
   amount      Float
-  category    String   @default("Allgemein") // NEU: Für das Tortendiagramm
+  category    String   @default("Allgemein")
   date        DateTime @default(now())
   userId      String
   user        User     @relation("UserExpenses", fields: [userId], references: [id])

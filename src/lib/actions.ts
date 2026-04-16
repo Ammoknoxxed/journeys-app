@@ -662,3 +662,19 @@ export async function deleteSharedContact(id: string) {
   await prisma.sharedContact.delete({ where: { id } });
   revalidatePath("/");
 }
+
+export async function addIncome(title: string, amount: number) {
+  const { user } = await requireAuth();
+  await prisma.income.create({
+    data: { title, amount: Math.abs(amount), userId: user.id }
+  });
+  revalidatePath("/");
+  revalidatePath("/statistics");
+}
+
+export async function deleteIncome(id: string) {
+  await requireAuth();
+  await prisma.income.delete({ where: { id } });
+  revalidatePath("/");
+  revalidatePath("/statistics");
+}
