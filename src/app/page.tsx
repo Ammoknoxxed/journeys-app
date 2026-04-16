@@ -1,3 +1,4 @@
+// src/app/page.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -5,16 +6,18 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { 
   addBucketItem, approveBucketItem, deleteBucketItem, 
-  addObligation, deleteObligation, addExpense, 
-  deleteExpense, addFundsToItem, markItemCompleted
+  addExpense, deleteExpense, addFundsToItem, markItemCompleted,
+  addStickyNote, deleteStickyNote, consumePetFood, addPetFood,
+  cleanLitterBox, addHealthEvent, deleteHealthEvent
 } from "@/lib/actions";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import Image from "next/image";
 import { 
   LayoutDashboard, Wallet, ShoppingCart, Utensils, 
-  Map, Heart, Lock, BookOpen, Calendar, Sparkles, 
+  Map, Heart, Lock, BookOpen, Calendar,
   Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
-  Plus, X, Check
+  Plus, X, Check, Camera, MessageSquare
 } from "lucide-react";
 
 // --- DYNAMISCHE GIMMICKS ---
@@ -44,7 +47,14 @@ function getRandomCatStatus() {
     status: statuses[Math.floor(Math.random() * statuses.length)] 
   };
 }
-// ---------------------------
+
+function getHygieneStatus(lastCleanAt?: Date | null) {
+  if (!lastCleanAt) return { text: "Nie", color: "text-rose-500", bg: "bg-rose-500/10 border-rose-500/20" };
+  const hours = (new Date().getTime() - lastCleanAt.getTime()) / (1000 * 60 * 60);
+  if (hours < 12) return { text: "Frisch", color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" };
+  if (hours < 24) return { text: "Okay", color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" };
+  return { text: "Kritisch", color: "text-rose-500", bg: "bg-rose-500/10 border-rose-500/20 animate-pulse" };
+}
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -57,6 +67,14 @@ export default async function DashboardPage() {
   const obligations = await prisma.financialObligation.findMany();
   const openShoppingItemsCount = await prisma.shoppingItem.count({ where: { checked: false } });
   
+  // Püppi & Schwarzes Brett Daten
+  let petFood = await prisma.petFood.findFirst();
+  if (!petFood) petFood = await prisma.petFood.create({ data: { cans: 10 } });
+  const stickyNotes = await prisma.stickyNote.findMany({ orderBy: { createdAt: 'desc' }, take: 10 });
+  const lastCleanBox1 = await prisma.litterBoxLog.findFirst({ where: { boxId: 1 }, orderBy: { createdAt: 'desc' } });
+  const lastCleanBox2 = await prisma.litterBoxLog.findFirst({ where: { boxId: 2 }, orderBy: { createdAt: 'desc' } });
+  const healthEvents = await prisma.petHealthEvent.findMany({ orderBy: { dueDate: 'asc' } });
+
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const expenses = await prisma.expense.findMany({
     where: { date: { gte: startOfMonth } },
@@ -91,7 +109,7 @@ export default async function DashboardPage() {
   const greeting = getRandomGreeting();
   const catGimmick = getRandomCatStatus();
 
-  // App Drawer (Kompakt)
+  // App Drawer
   const apps = [
     { title: "Smart Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
     { title: "Abos", icon: <TrendingUp size={24} />, href: "/subscriptions", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-500" },
@@ -131,7 +149,7 @@ export default async function DashboardPage() {
 
       <main className="max-w-5xl mx-auto px-4 md:px-8 mt-6 md:mt-10 space-y-8 md:space-y-12">
         
-        {/* 2. THE APP DRAWER (iOS Style Grid) */}
+        {/* 2. THE APP DRAWER */}
         <section>
           <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-y-6 gap-x-2">
             {apps.map((app) => (
@@ -154,8 +172,6 @@ export default async function DashboardPage() {
 
         {/* 3. FINANCE BENTO BOX */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          
-          {/* Main Cashflow Card */}
           <div className="md:col-span-7 lg:col-span-8 bg-[#C5A38E] text-white p-6 md:p-8 rounded-3xl shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px]">
             <div className="relative z-10">
               <p className="text-xs uppercase tracking-widest font-bold opacity-80 mb-2">Haushalts-Cashflow</p>
@@ -169,7 +185,7 @@ export default async function DashboardPage() {
                   "use server"; 
                   const raw = formData.get("income") as string;
                   if (!raw) return;
-                  const parsed = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+                  const parsed = Math.abs(parseFloat(raw.replace(/\./g, '').replace(',', '.')));
                   if (!isNaN(parsed) && currentUser) {
                     await prisma.user.update({ where: { id: currentUser.id }, data: { netIncome: parsed } });
                     revalidatePath("/");
@@ -184,14 +200,11 @@ export default async function DashboardPage() {
                 <span className="text-lg font-bold text-right tracking-tight">€ {totalExpenses}</span>
               </div>
             </div>
-            {/* Dekorativer Hintergrund */}
             <div className="absolute -right-10 -top-10 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl pointer-events-none"></div>
           </div>
 
-          {/* Fair Share Card */}
           <div className="md:col-span-5 lg:col-span-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-6 md:p-8 rounded-3xl flex flex-col justify-center gap-6 shadow-sm">
             <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Fair Share Verteilung</h3>
-            
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-bold text-stone-700 dark:text-stone-200">{currentUser?.name}</span>
@@ -202,7 +215,6 @@ export default async function DashboardPage() {
               </div>
               <p className="text-[10px] text-stone-400 mt-1 text-right">{(mySharePct * 100).toFixed(0)}% Anteil</p>
             </div>
-
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="font-bold text-[#C5A38E]">{partner?.name || 'Partner'}</span>
@@ -214,40 +226,125 @@ export default async function DashboardPage() {
               <p className="text-[10px] text-stone-400 mt-1 text-right">{(partnerSharePct * 100).toFixed(0)}% Anteil</p>
             </div>
           </div>
-
         </section>
 
-        {/* 4. DAILY OPERATIONS (Lists) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 4. DAILY OPERATIONS & NEW MODULES */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           
-          {/* Fixkosten */}
-          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[350px]">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">Fixkosten-Radar</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-1 overscroll-contain scrollbar-thin">
-              {obligations.map(ob => (
-                <div key={ob.id} className="group flex justify-between items-center p-3 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-xl transition-colors">
-                  <span className="text-sm font-medium">{ob.title}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm">€ {ob.amount}</span>
-                    <form action={async () => { "use server"; await deleteObligation(ob.id); }}>
-                      <button className="text-stone-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-950"><X size={14} /></button>
+          {/* Püppis Care Center (Science Edition) */}
+          <div className="bg-stone-900 border border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between text-stone-100 h-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2 text-[#C5A38E]">
+                <Cat size={20} />
+                <h3 className="text-xs font-bold uppercase tracking-widest">Püppi's Care Center</h3>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-light">{petFood.cans}</p>
+                <p className="text-[8px] uppercase tracking-widest text-stone-500 font-bold">Dosen</p>
+              </div>
+            </div>
+
+            {/* Hygiene Tracking (Die 2 Katzenklos) */}
+            <div className="space-y-2 mb-6">
+              <p className="text-[10px] uppercase font-bold text-stone-500 tracking-widest mb-2">Hygiene-Status (N+1)</p>
+              
+              <div className={`flex justify-between items-center p-3 rounded-2xl border ${getHygieneStatus(lastCleanBox1?.createdAt).bg} transition-colors`}>
+                <div>
+                  <p className="text-xs font-bold">Haupt-Klo</p>
+                  <p className="text-[10px] text-stone-400 mt-0.5">Zuletzt: {lastCleanBox1 ? new Date(lastCleanBox1.createdAt).toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'}) + ' von ' + lastCleanBox1.cleanedBy : 'Unbekannt'}</p>
+                </div>
+                <form action={async () => { "use server"; await cleanLitterBox(1); }}>
+                  <button className="bg-stone-800 hover:bg-stone-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all">✓</button>
+                </form>
+              </div>
+
+              <div className={`flex justify-between items-center p-3 rounded-2xl border ${getHygieneStatus(lastCleanBox2?.createdAt).bg} transition-colors`}>
+                <div>
+                  <p className="text-xs font-bold">Zweit-Klo</p>
+                  <p className="text-[10px] text-stone-400 mt-0.5">Zuletzt: {lastCleanBox2 ? new Date(lastCleanBox2.createdAt).toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'}) + ' von ' + lastCleanBox2.cleanedBy : 'Unbekannt'}</p>
+                </div>
+                <form action={async () => { "use server"; await cleanLitterBox(2); }}>
+                  <button className="bg-stone-800 hover:bg-stone-700 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all">✓</button>
+                </form>
+              </div>
+            </div>
+
+            {/* Futter Management Buttons */}
+            <div className="flex gap-2 mb-4">
+              <form action={consumePetFood} className="flex-1"><button className="w-full h-10 bg-stone-800 rounded-xl flex items-center justify-center font-bold text-stone-300 shadow-sm active:scale-95 transition-all">-1 Dose</button></form>
+              <form action={async () => { "use server"; await addPetFood(6); }} className="flex-1"><button className="w-full h-10 bg-[#C5A38E] text-stone-900 rounded-xl flex items-center justify-center font-bold shadow-sm hover:bg-[#A38572] active:scale-95 transition-all">+6 Dosen</button></form>
+            </div>
+
+            {/* Medical Tracker */}
+            <div className="pt-4 border-t border-stone-800">
+              <p className="text-[10px] uppercase font-bold text-stone-500 tracking-widest mb-3">Medizin & Vorsorge</p>
+              <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-thin pr-1">
+                {healthEvents.map(event => (
+                  <div key={event.id} className="flex justify-between items-center bg-stone-800/50 p-2.5 rounded-xl">
+                    <span className="text-xs font-medium">{event.title}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-[#C5A38E] font-bold">{new Date(event.dueDate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
+                      <form action={async () => { "use server"; await deleteHealthEvent(event.id); }}>
+                        <button className="text-stone-500 hover:text-emerald-500 transition-colors"><Check size={14}/></button>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+                {healthEvents.length === 0 && <p className="text-[10px] text-stone-500 italic">Keine Termine geplant.</p>}
+              </div>
+              
+              <form action={async (formData) => { "use server"; await addHealthEvent(formData.get("title") as string, formData.get("date") as string); }} className="mt-3 flex gap-2">
+                <input name="title" placeholder="Wurmkur..." className="w-1/2 bg-stone-800 text-xs px-3 h-8 rounded-lg outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                <input name="date" type="date" className="w-1/2 bg-stone-800 text-xs px-3 h-8 rounded-lg outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                <button className="bg-[#C5A38E] text-stone-900 font-bold px-3 h-8 rounded-lg hover:bg-[#A38572] active:scale-95 transition-all">+</button>
+              </form>
+            </div>
+          </div>
+
+          {/* Das Schwarze Brett (Sticky Notes) */}
+          <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[550px] md:h-auto lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare size={18} className="text-[#C5A38E]" />
+              <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Das Schwarze Brett</h3>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+              {stickyNotes.map(note => (
+                <div key={note.id} className="group bg-white dark:bg-stone-800/50 p-4 rounded-2xl relative flex flex-col gap-2 shadow-sm border border-stone-100 dark:border-stone-800">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-[#C5A38E]">{note.author}</span>
+                    <form action={async () => { "use server"; await deleteStickyNote(note.id); }}>
+                      <button className="text-stone-400 hover:text-rose-400 w-6 h-6 flex items-center justify-center"><X size={12} /></button>
                     </form>
                   </div>
+                  {note.text && <p className="text-sm text-stone-700 dark:text-stone-300">{note.text}</p>}
+                  {note.imageUrl && (
+                    <div className="relative w-full h-40 mt-2 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-700">
+                      <Image src={note.imageUrl} alt="Notiz Bild" fill className="object-cover" />
+                    </div>
+                  )}
                 </div>
               ))}
+              {stickyNotes.length === 0 && <p className="text-stone-400 dark:text-stone-500 italic text-xs">Noch keine Notizen hinterlassen.</p>}
             </div>
-            <form action={async (formData) => { "use server"; await addObligation(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-2">
-              <input name="title" placeholder="Miete, Strom..." className="flex-1 min-w-0 px-4 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50" required />
-              <input name="amount" type="number" inputMode="decimal" placeholder="€" className="w-20 px-3 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 text-center" required />
-              <button className="w-12 h-12 bg-stone-900 dark:bg-stone-800 text-white rounded-xl flex items-center justify-center hover:bg-[#C5A38E] transition-colors shadow-sm"><Plus size={18} /></button>
+
+            <form action={addStickyNote} className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-800 flex gap-2">
+              <input name="text" placeholder="Notiz hinterlassen..." className="flex-1 min-w-0 px-4 h-12 bg-white dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 border border-stone-200 dark:border-stone-800" />
+              
+              <label className="w-12 h-12 shrink-0 bg-stone-100 dark:bg-stone-800 rounded-xl flex items-center justify-center hover:bg-[#C5A38E] hover:text-white transition-colors cursor-pointer text-stone-500 dark:text-stone-300">
+                <Camera size={18} />
+                <input type="file" name="file" accept="image/*" className="hidden" />
+              </label>
+
+              <button type="submit" className="px-4 h-12 bg-[#C5A38E] text-white rounded-xl flex items-center justify-center font-bold hover:bg-[#A38572] transition-colors active:scale-95 shadow-sm">Senden</button>
             </form>
           </div>
 
           {/* Kassenbons */}
-          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[350px]">
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-3xl p-6 shadow-sm flex flex-col h-[350px] lg:col-span-3">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Kassenbons (Dieser Monat)</h3>
-              <span className="text-xs font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-md">Total: € {totalVariable.toFixed(0)}</span>
+              <span className="text-xs font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-3 py-1.5 rounded-lg">Total: € {totalVariable.toFixed(0)}</span>
             </div>
             <div className="flex-1 overflow-y-auto pr-2 space-y-1 overscroll-contain scrollbar-thin">
               {expenses.map(ex => (
@@ -268,7 +365,7 @@ export default async function DashboardPage() {
             </div>
             <form action={async (formData) => { "use server"; await addExpense(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-2">
               <input name="title" placeholder="Rewe, Tanken..." className="flex-1 min-w-0 px-4 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50" required />
-              <input name="amount" type="text" inputMode="decimal" placeholder="€" className="w-20 px-3 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 text-center" required />
+              <input name="amount" type="number" inputMode="decimal" placeholder="€" className="w-20 px-3 h-12 bg-stone-50 dark:bg-stone-950 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#C5A38E]/50 text-center" required />
               <button className="w-12 h-12 bg-[#C5A38E] text-white rounded-xl flex items-center justify-center hover:bg-[#A38572] transition-colors shadow-sm"><Plus size={18} /></button>
             </form>
           </div>

@@ -181,3 +181,16 @@ model SmartDevice {
   addedBy     String
   createdAt   DateTime @default(now())
 }
+
+model LitterBoxLog {
+  id        String   @id @default(cuid())
+  boxId     Int      // 1 = Hauptklo, 2 = Zweitklo
+  cleanedBy String
+  createdAt DateTime @default(now())
+}
+
+model PetHealthEvent {
+  id        String   @id @default(cuid())
+  title     String   // z.B. "Wurmkur", "Impfung", "Check-Up"
+  dueDate   DateTime
+}
