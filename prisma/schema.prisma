@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // WICHTIG: In Prisma 7 darf hier keine 'url' stehen, wenn wir den PG-Adapter nutzen!
+  // Hinweis: In Prisma 7 wird die URL über den Adapter in src/lib/prisma.ts geladen.
 }
 
 model User {
