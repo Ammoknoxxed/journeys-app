@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 // --- HILFSFUNKTION: SECURITY CHECK ---
 async function requireAuth() {
@@ -13,6 +15,25 @@ async function requireAuth() {
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   if (!user) throw new Error("User in der Datenbank nicht gefunden.");
   return { session, user };
+}
+
+// --- BILDER UPLOAD (INTERN FÜR SCHWARZES BRETT) ---
+export async function uploadImage(formData: FormData) {
+  await requireAuth();
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("Kein Bild gefunden");
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  
+  const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+  const uploadDir = join(process.cwd(), "public/uploads");
+  const filepath = join(uploadDir, filename);
+  
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(filepath, buffer);
+  
+  return `/uploads/${filename}`;
 }
 
 // --- NUTZER & EINKOMMEN ---
@@ -416,6 +437,32 @@ export async function setGoveeDeviceState(id: string, cmdName: "color" | "bright
   }
 }
 
+export async function sendTvCommand(id: string, capability: string, command: string, args: any[] = []) {
+  await requireAuth();
+  const device = await prisma.smartDevice.findUnique({ where: { id } });
+  if (!device || !device.externalId) return;
+
+  const ST_TOKEN = process.env.SMARTTHINGS_TOKEN;
+  if (!ST_TOKEN) return;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${ST_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commands: [{ component: "main", capability: capability, command: command, arguments: args }]
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    revalidatePath("/smarthome");
+  } catch (error) {
+    console.error("Samsung Control Error:", error);
+  }
+}
+
 // --- SCHWARZES BRETT (STICKY NOTES MIT BASE64 BILDER-HACK FÜR RAILWAY) ---
 export async function addStickyNote(formData: FormData) {
   const { user } = await requireAuth();
@@ -423,7 +470,6 @@ export async function addStickyNote(formData: FormData) {
   const file = formData.get("file") as File;
   let imageUrl = null;
 
-  // Verwandelt das Bild direkt in einen Datenbank-sicheren Text (Base64)
   if (file && file.size > 0) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -517,7 +563,6 @@ export async function updatePantryCount(id: string, change: number) {
 
 export async function addPantryItem(name: string) {
   await requireAuth();
-  // Neues Element startet jetzt bei 0, Mindestbestand ist 1
   await prisma.pantryItem.create({ data: { name, minCount: 1, count: 0 } });
   revalidatePath("/");
 }
@@ -552,59 +597,4 @@ export async function deleteSharedContact(id: string) {
   await requireAuth();
   await prisma.sharedContact.delete({ where: { id } });
   revalidatePath("/");
-}
-
-// --- ERWEITERTE SMART HOME STEUERUNG (GOVEE & SAMSUNG TV) ---
-export async function setGoveeDeviceState(id: string, cmdName: "color" | "brightness", value: any) {
-  await requireAuth();
-  const device = await prisma.smartDevice.findUnique({ where: { id } });
-  if (!device || !device.externalId || !device.modelCode) return;
-
-  const GOVEE_KEY = process.env.GOVEE_API_KEY;
-  if (!GOVEE_KEY) return;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    await fetch('https://developer-api.govee.com/v1/devices/control', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Govee-API-Key': GOVEE_KEY },
-      body: JSON.stringify({
-        device: device.externalId,
-        model: device.modelCode,
-        cmd: { name: cmdName, value: value }
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    revalidatePath("/smarthome");
-  } catch (error) {
-    console.error("Govee Control Error:", error);
-  }
-}
-
-export async function sendTvCommand(id: string, capability: string, command: string, args: any[] = []) {
-  await requireAuth();
-  const device = await prisma.smartDevice.findUnique({ where: { id } });
-  if (!device || !device.externalId) return;
-
-  const ST_TOKEN = process.env.SMARTTHINGS_TOKEN;
-  if (!ST_TOKEN) return;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${ST_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        commands: [{ component: "main", capability: capability, command: command, arguments: args }]
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    revalidatePath("/smarthome");
-  } catch (error) {
-    console.error("Samsung Control Error:", error);
-  }
 }
