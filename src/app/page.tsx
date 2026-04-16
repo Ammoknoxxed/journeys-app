@@ -63,6 +63,9 @@ export default async function DashboardPage() {
 
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const todayZero = new Date(new Date().setHours(0,0,0,0));
+  
+  // HARTER SYSTEM-START: 01. Mai 2026
+  const systemStartDate = new Date("2026-05-01T00:00:00.000Z");
 
   const [
     allUsers, obligations, openShoppingItemsCount, petFoodResult,
@@ -88,8 +91,9 @@ export default async function DashboardPage() {
     prisma.bucketItem.findMany({ include: { creator: true, approver: true }, orderBy: { createdAt: 'desc' } }),
     prisma.petHealthEvent.findMany({ orderBy: { dueDate: 'asc' } }),
     
-    prisma.expense.aggregate({ _sum: { amount: true } }),
-    prisma.income.aggregate({ _sum: { amount: true } }),
+    // Für den All-Time Kontostand ignorieren wir alles vor Mai 2026!
+    prisma.expense.aggregate({ where: { date: { gte: systemStartDate } }, _sum: { amount: true } }),
+    prisma.income.aggregate({ where: { date: { gte: systemStartDate } }, _sum: { amount: true } }),
     prisma.trip.aggregate({ _sum: { savedAmount: true } }),
     prisma.income.findMany({ where: { date: { gte: startOfMonth } }, include: { user: true }, orderBy: { date: 'desc' } })
   ]);
@@ -100,10 +104,14 @@ export default async function DashboardPage() {
   let petFood = petFoodResult || await prisma.petFood.create({ data: { cans: 10 } });
   let energySettings = energySettingsResult || await prisma.energySettings.create({ data: { kwhPrice: 0.35, monthlyPrepayment: 80 } });
 
+  // --- DIE ECHTE KONTOSTAND-MATHE (Ab Mai 2026) ---
   const startYear = 2026;
-  const startMonth = 3; 
+  const startMonth = 4; // Mai (0-indexed = 4)
   const now = new Date();
-  const monthsActive = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth) + 1;
+  
+  let monthsActive = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth) + 1;
+  // Wenn wir aktuell noch vor Mai sind (z.B. April), werden noch 0 Monate Fixkosten berechnet
+  if (monthsActive < 0) monthsActive = 0; 
 
   const totalFixedMonthly = obligations.reduce((sum, ob) => sum + ob.amount, 0);
   const totalFixedAllTime = totalFixedMonthly * monthsActive;
@@ -251,10 +259,8 @@ export default async function DashboardPage() {
           ))}
         </section>
 
-        {/* FINANCE BENTO: HEADER (KONTOSTAND & FAIR SHARE) */}
         <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-7 lg:col-span-8 bg-stone-900 text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden flex flex-col justify-center min-h-[220px] transition-colors">
-            
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <p className="text-xs uppercase tracking-widest font-bold text-stone-500 mb-2 flex items-center gap-2">
@@ -263,10 +269,9 @@ export default async function DashboardPage() {
                 <h2 className={`text-5xl md:text-6xl font-light tracking-tighter tabular-nums ${realBalance >= 0 ? 'text-[#C5A38E]' : 'text-rose-500'}`}>
                   € {realBalance.toLocaleString('de-DE', { maximumFractionDigits: 0 })}
                 </h2>
-                <p className="text-[10px] text-stone-500 mt-2 italic">Saldo inkl. Übertrag aus Vormonaten</p>
+                <p className="text-[10px] text-stone-500 mt-2 italic">Saldo ab Mai 2026 (Systemstart)</p>
               </div>
               
-              {/* Zusammenfassung diesen Monat */}
               <div className="bg-stone-800/50 p-5 rounded-3xl border border-stone-700/50 text-right w-full md:w-auto shadow-inner">
                  <p className="text-[10px] uppercase font-bold text-stone-400 mb-2">Diesen Monat ({new Date().toLocaleDateString('de-DE', { month: 'long' })})</p>
                  <p className="text-sm font-medium text-emerald-400 mb-1">+ € {currentMonthIncomeVal.toLocaleString('de-DE', { maximumFractionDigits: 0 })} Einnahmen</p>
@@ -277,7 +282,6 @@ export default async function DashboardPage() {
                  </p>
               </div>
             </div>
-            
           </div>
 
           <div className="md:col-span-5 lg:col-span-4 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-8 rounded-[2.5rem] shadow-sm flex flex-col justify-center gap-6 transition-colors">
@@ -319,13 +323,11 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* FINANCE BENTO: DAS 3-SPALTEN LEDGER (VOLLE BREITE, MEHR PLATZ!) */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* 1. EINNAHMEN */}
-            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[250px]">
+            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[280px]">
               <p className="text-[10px] uppercase font-bold text-emerald-500/70 border-b border-stone-800 pb-3 mb-4">Geldeingang</p>
-              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800">
+              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800 mb-4">
                   {currentMonthIncomes.length === 0 && <p className="text-[10px] text-stone-600 italic">Noch nichts eingegangen.</p>}
                   {currentMonthIncomes.map(inc => (
                     <div key={inc.id} className="flex justify-between items-center text-[11px] text-stone-400 group">
@@ -337,17 +339,18 @@ export default async function DashboardPage() {
                     </div>
                   ))}
               </div>
-              <form action={async (formData) => { "use server"; await addIncome(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="flex flex-wrap xl:flex-nowrap gap-2 mt-4 pt-4 border-t border-stone-800/50">
-                  <input name="title" placeholder="Gehalt..." className="flex-1 min-w-[80px] bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-emerald-500" required />
-                  <input name="amount" type="number" step="0.01" placeholder="€" className="w-16 bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-emerald-500" required />
-                  <button className="bg-emerald-600 text-stone-900 px-3 py-2 rounded-xl text-[10px] font-bold hover:bg-emerald-500 transition-colors">+</button>
+              <form action={async (formData) => { "use server"; await addIncome(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-auto pt-4 border-t border-stone-800/50 flex flex-col gap-2">
+                  <input name="title" placeholder="Gehalt..." className="w-full bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-emerald-500" required />
+                  <div className="flex gap-2">
+                    <input name="amount" type="number" step="0.01" placeholder="€ Betrag" className="flex-1 bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-emerald-500" required />
+                    <button className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-bold hover:bg-emerald-500 transition-colors">Hinzufügen</button>
+                  </div>
               </form>
             </div>
 
-            {/* 2. FIXKOSTEN */}
-            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[250px]">
+            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[280px]">
               <p className="text-[10px] uppercase font-bold text-stone-500 border-b border-stone-800 pb-3 mb-4">Fixkosten Liste</p>
-              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800">
+              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800 mb-4">
                   {obligations.map(ob => (
                     <div key={ob.id} className="flex justify-between items-center text-[11px] text-stone-400 group">
                       <span className="truncate max-w-[120px]">{ob.title}</span>
@@ -358,17 +361,18 @@ export default async function DashboardPage() {
                     </div>
                   ))}
               </div>
-              <form action={async (formData) => { "use server"; await addObligation(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="flex flex-wrap xl:flex-nowrap gap-2 mt-4 pt-4 border-t border-stone-800/50">
-                  <input name="title" placeholder="Miete, Strom..." className="flex-1 min-w-[80px] bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
-                  <input name="amount" type="number" step="0.01" placeholder="€" className="w-16 bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
-                  <button className="bg-[#C5A38E] text-stone-900 px-3 py-2 rounded-xl text-[10px] font-bold hover:bg-[#A38572] transition-colors">+</button>
+              <form action={async (formData) => { "use server"; await addObligation(formData.get("title") as string, parseFloat(formData.get("amount") as string)); }} className="mt-auto pt-4 border-t border-stone-800/50 flex flex-col gap-2">
+                  <input name="title" placeholder="Miete, Strom..." className="w-full bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                  <div className="flex gap-2">
+                    <input name="amount" type="number" step="0.01" placeholder="€ Betrag" className="flex-1 bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                    <button className="bg-[#C5A38E] text-stone-900 px-4 py-2.5 rounded-xl text-[10px] font-bold hover:bg-[#A38572] transition-colors">Hinzufügen</button>
+                  </div>
               </form>
             </div>
 
-            {/* 3. ALLTAG */}
-            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[250px]">
+            <div className="bg-stone-900 text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col transition-colors min-h-[280px]">
               <p className="text-[10px] uppercase font-bold text-[#C5A38E]/70 border-b border-stone-800 pb-3 mb-4">Alltag Ausgaben</p>
-              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800">
+              <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-800 mb-4">
                   {currentMonthExpenses.map(ex => (
                     <div key={ex.id} className="flex justify-between items-center text-[11px] text-stone-400 group">
                       <span className="truncate max-w-[120px]">{ex.title}</span>
@@ -379,17 +383,19 @@ export default async function DashboardPage() {
                     </div>
                   ))}
               </div>
-              <form action={async (formData) => { "use server"; await addExpense(formData.get("title") as string, parseFloat(formData.get("amount") as string), formData.get("category") as string); }} className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-stone-800/50">
-                  <input name="title" placeholder="Tanken, Rewe..." className="flex-1 min-w-[60px] bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
-                  <select name="category" className="w-20 bg-stone-800 border-none text-[10px] px-2 py-2 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required>
-                    <option value="Lebensmittel">Essen</option>
-                    <option value="Auto">Auto</option>
-                    <option value="Haushalt">Haus</option>
-                    <option value="Freizeit">Freizeit</option>
-                    <option value="Allgemein">Allg.</option>
-                  </select>
-                  <input name="amount" type="number" step="0.01" placeholder="€" className="w-16 bg-stone-800 border-none text-[10px] px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
-                  <button className="bg-[#C5A38E] text-stone-900 px-3 py-2 rounded-xl text-[10px] font-bold hover:bg-[#A38572] transition-colors">+</button>
+              <form action={async (formData) => { "use server"; await addExpense(formData.get("title") as string, parseFloat(formData.get("amount") as string), formData.get("category") as string); }} className="mt-auto pt-4 border-t border-stone-800/50 flex flex-col gap-2">
+                  <input name="title" placeholder="Tanken, Rewe..." className="w-full bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                  <div className="flex gap-2">
+                    <select name="category" className="w-[85px] bg-stone-800 border-none text-[10px] px-2 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required>
+                      <option value="Lebensmittel">Essen</option>
+                      <option value="Auto">Auto</option>
+                      <option value="Haushalt">Haus</option>
+                      <option value="Freizeit">Freizeit</option>
+                      <option value="Allgemein">Allg.</option>
+                    </select>
+                    <input name="amount" type="number" step="0.01" placeholder="€" className="flex-1 bg-stone-800 border-none text-[10px] px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E]" required />
+                    <button className="bg-[#C5A38E] text-stone-900 px-3 py-2.5 rounded-xl text-[10px] font-bold hover:bg-[#A38572] transition-colors">+</button>
+                  </div>
               </form>
             </div>
 
