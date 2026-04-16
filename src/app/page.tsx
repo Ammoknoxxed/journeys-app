@@ -8,7 +8,7 @@ import {
   addExpense, deleteExpense, addFundsToItem, markItemCompleted,
   addStickyNote, deleteStickyNote, consumePetFood, addPetFood,
   cleanLitterBox, addHealthEvent, deleteHealthEvent,
-  setPantryCount, addPantryItem, deletePantryItem, // HIER GEÄNDERT
+  setPantryCount, addPantryItem, deletePantryItem,
   addEnergyReading, deleteEnergyReading, updateEnergySettings,
   addSharedContact, deleteSharedContact,
   updateNetIncome, addObligation, deleteObligation
@@ -62,44 +62,45 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/login");
 
-  const allUsers = await prisma.user.findMany();
+  // --- DATEN PARALLEL ABRUFEN (TURBO MODE) ---
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const todayZero = new Date(new Date().setHours(0,0,0,0));
+
+  const [
+    allUsers, obligations, openShoppingItemsCount, petFoodResult,
+    stickyNotes, lastCleanBox1, lastCleanBox2, pantryItems,
+    energyReadings, energySettingsResult, contacts, nextTrip,
+    upcomingEvents, expenses, allItems
+  ] = await Promise.all([
+    prisma.user.findMany(),
+    prisma.financialObligation.findMany(),
+    prisma.shoppingItem.count({ where: { checked: false } }),
+    prisma.petFood.findFirst(),
+    prisma.stickyNote.findMany({ orderBy: { createdAt: 'desc' }, take: 10 }),
+    prisma.litterBoxLog.findFirst({ where: { boxId: 1 }, orderBy: { createdAt: 'desc' } }),
+    prisma.litterBoxLog.findFirst({ where: { boxId: 2 }, orderBy: { createdAt: 'desc' } }),
+    prisma.pantryItem.findMany({ orderBy: { name: 'asc' } }),
+    prisma.energyReading.findMany({ orderBy: { date: 'asc' } }),
+    prisma.energySettings.findFirst(),
+    prisma.sharedContact.findMany({ orderBy: { role: 'asc' } }),
+    prisma.trip.findFirst({ where: { date: { gte: todayZero } }, orderBy: { date: 'asc' } }),
+    prisma.timelineEvent.findMany({ where: { date: { gte: todayZero } }, orderBy: { date: 'asc' }, take: 3 }),
+    prisma.expense.findMany({ where: { date: { gte: startOfMonth } }, include: { user: true }, orderBy: { date: 'desc' } }),
+    prisma.bucketItem.findMany({ include: { creator: true, approver: true }, orderBy: { createdAt: 'desc' } })
+  ]);
+
   const currentUser = allUsers.find(u => u.email === session.user?.email);
   const partner = allUsers.find(u => u.email !== session.user?.email);
-  const obligations = await prisma.financialObligation.findMany();
-  const openShoppingItemsCount = await prisma.shoppingItem.count({ where: { checked: false } });
-  
-  let petFood = await prisma.petFood.findFirst();
+
+  // Fallbacks verarbeiten
+  let petFood = petFoodResult;
   if (!petFood) petFood = await prisma.petFood.create({ data: { cans: 10 } });
-  const stickyNotes = await prisma.stickyNote.findMany({ orderBy: { createdAt: 'desc' }, take: 10 });
-  const lastCleanBox1 = await prisma.litterBoxLog.findFirst({ where: { boxId: 1 }, orderBy: { createdAt: 'desc' } });
-  const lastCleanBox2 = await prisma.litterBoxLog.findFirst({ where: { boxId: 2 }, orderBy: { createdAt: 'desc' } });
-  
-  const pantryItems = await prisma.pantryItem.findMany({ orderBy: { name: 'asc' } });
-  const energyReadings = await prisma.energyReading.findMany({ orderBy: { date: 'asc' } });
-  let energySettings = await prisma.energySettings.findFirst();
+
+  let energySettings = energySettingsResult;
   if (!energySettings) energySettings = await prisma.energySettings.create({ data: { kwhPrice: 0.35, monthlyPrepayment: 80 } });
 
-  const contacts = await prisma.sharedContact.findMany({ orderBy: { role: 'asc' } });
-  
-  const nextTrip = await prisma.trip.findFirst({ where: { date: { gte: new Date(new Date().setHours(0,0,0,0)) } }, orderBy: { date: 'asc' } });
-  const upcomingEvents = await prisma.timelineEvent.findMany({ 
-    where: { date: { gte: new Date(new Date().setHours(0,0,0,0)) } }, 
-    orderBy: { date: 'asc' }, 
-    take: 3 
-  });
 
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const expenses = await prisma.expense.findMany({
-    where: { date: { gte: startOfMonth } },
-    include: { user: true },
-    orderBy: { date: 'desc' }
-  });
-
-  const allItems = await prisma.bucketItem.findMany({
-    include: { creator: true, approver: true },
-    orderBy: { createdAt: 'desc' }
-  });
-
+  // --- MATHEMATIK & LOGIK ---
   const myIncome = currentUser?.netIncome || 0;
   const partnerIncome = partner?.netIncome || 0;
   const totalIncome = myIncome + partnerIncome;
@@ -115,7 +116,9 @@ export default async function DashboardPage() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const weeklyExpenses = expenses.filter(e => e.date >= sevenDaysAgo).reduce((sum, e) => sum + e.amount, 0);
+  // Wir machen den Count für Chores hier separat, um den Promise.all Block übersichtlich zu halten (ist extrem schnell)
   const choresDoneThisWeek = await prisma.chore.count({ where: { lastDoneAt: { gte: sevenDaysAgo } } });
+  
   const daysUntilTrip = nextTrip ? Math.ceil((nextTrip.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
   const activeItems = allItems.filter(i => !i.isCompleted);
