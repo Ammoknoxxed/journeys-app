@@ -586,6 +586,17 @@ export async function deleteEnergyReading(id: string) {
   revalidatePath("/");
 }
 
+export async function updateEnergySettings(kwhPrice: number, monthlyPrepayment: number) {
+  await requireAuth();
+  let settings = await prisma.energySettings.findFirst();
+  if (settings) {
+    await prisma.energySettings.update({ where: { id: settings.id }, data: { kwhPrice, monthlyPrepayment } });
+  } else {
+    await prisma.energySettings.create({ data: { kwhPrice, monthlyPrepayment } });
+  }
+  revalidatePath("/");
+}
+
 // --- SHARED CONTACTS ---
 export async function addSharedContact(name: string, role: string, phone?: string, email?: string) {
   await requireAuth();

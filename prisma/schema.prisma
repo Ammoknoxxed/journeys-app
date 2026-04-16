@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Hinweis: In Prisma 7 wird die URL über den Adapter in src/lib/prisma.ts geladen.
 }
 
 model User {
@@ -173,7 +172,7 @@ model CheckInAnswer {
 model SmartDevice {
   id          String   @id @default(cuid())
   name        String
-  type        String   // LIGHT, TV, VACUUM
+  type        String   
   externalId  String?  
   modelCode   String?  
   isActive    Boolean  @default(false)
@@ -223,6 +222,13 @@ model EnergyReading {
   type      String   
   value     Float
   date      DateTime @default(now())
+}
+
+model EnergySettings {
+  id                String   @id @default(cuid())
+  kwhPrice          Float    @default(0.35)
+  monthlyPrepayment Float    @default(80.0)
+  updatedAt         DateTime @updatedAt
 }
 
 model SharedContact {
