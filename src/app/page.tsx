@@ -18,7 +18,8 @@ import {
   LayoutDashboard, Wallet, ShoppingCart, Utensils, 
   Map, Heart, Lock, BookOpen, Calendar,
   Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
-  Plus, X, Check, Camera, MessageSquare, Zap, Phone, Timer, Star
+  Plus, X, Check, Camera, MessageSquare, Zap, Phone, Timer, Star,
+  Trash2, ThumbsUp
 } from "lucide-react";
 
 // --- HILFSFUNKTIONEN ---
@@ -47,7 +48,6 @@ export default async function DashboardPage() {
   const stickyNotes = await prisma.stickyNote.findMany({ orderBy: { createdAt: 'desc' }, take: 10 });
   const lastCleanBox1 = await prisma.litterBoxLog.findFirst({ where: { boxId: 1 }, orderBy: { createdAt: 'desc' } });
   const lastCleanBox2 = await prisma.litterBoxLog.findFirst({ where: { boxId: 2 }, orderBy: { createdAt: 'desc' } });
-  const healthEvents = await prisma.petHealthEvent.findMany({ orderBy: { dueDate: 'asc' } });
   
   const pantryItems = await prisma.pantryItem.findMany({ orderBy: { name: 'asc' } });
   const energyReadings = await prisma.energyReading.findMany({ orderBy: { date: 'desc' }, take: 5 });
@@ -205,6 +205,102 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* --- WIEDERHERGESTELLT: BUCKETLIST / SINKING FUNDS --- */}
+        <section className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2.5rem] p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <PiggyBank size={20} className="text-[#C5A38E]" />
+            <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">Sinking Funds & Wünsche</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* GEMEINSAME ZIELE */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest border-b border-stone-100 dark:border-stone-800 pb-2">Gemeinsame Ziele</h3>
+              {jointItems.length === 0 && <p className="text-xs text-stone-400 italic">Keine gemeinsamen Ziele aktiv.</p>}
+              {jointItems.map(item => (
+                <div key={item.id} className="bg-stone-50 dark:bg-stone-950 p-4 rounded-2xl border border-stone-100 dark:border-stone-800">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-bold text-sm leading-tight">{item.title}</span>
+                    <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
+                      <button className="text-stone-400 hover:text-rose-500 transition-colors"><Trash2 size={14} /></button>
+                    </form>
+                  </div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-xs font-medium text-stone-500">€ {item.savedAmount} / {item.price}</span>
+                    <span className="text-xs font-bold text-[#C5A38E]">{Math.round((item.savedAmount / item.price) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden mb-4">
+                    <div className="bg-[#C5A38E] h-full rounded-full transition-all duration-500" style={{ width: `${Math.min((item.savedAmount / item.price) * 100, 100)}%` }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <form action={async (formData) => { "use server"; await addFundsToItem(item.id, parseFloat(formData.get("amount") as string)); }} className="flex-1 flex gap-1">
+                      <input name="amount" type="number" placeholder="+ €" className="w-16 h-8 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg text-xs text-center outline-none" required />
+                      <button className="flex-1 bg-stone-900 dark:bg-stone-800 text-white rounded-lg text-xs font-bold shadow-sm">Save</button>
+                    </form>
+                    {item.savedAmount >= item.price && (
+                      <form action={async () => { "use server"; await markItemCompleted(item.id); }}>
+                        <button className="h-8 px-3 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-sm flex items-center"><Check size={14} /></button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* MEINE WÜNSCHE */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest border-b border-stone-100 dark:border-stone-800 pb-2">Meine Wünsche</h3>
+              {myIndividualItems.length === 0 && <p className="text-xs text-stone-400 italic">Keine eigenen Wünsche.</p>}
+              {myIndividualItems.map(item => (
+                <div key={item.id} className="bg-stone-50 dark:bg-stone-950 p-4 rounded-2xl border border-stone-100 dark:border-stone-800">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-bold text-sm leading-tight">{item.title}</span>
+                    <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
+                      <button className="text-stone-400 hover:text-rose-500 transition-colors"><Trash2 size={14} /></button>
+                    </form>
+                  </div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-xs font-medium text-stone-500">Wartet auf Freigabe</span>
+                    <span className="text-xs font-bold text-stone-400">€ {item.price}</span>
+                  </div>
+                  <div className="text-[10px] text-amber-600 dark:text-amber-500 flex items-center gap-1 mt-2">
+                    <Timer size={12} /> Partner muss noch zustimmen
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* PARTNER WÜNSCHE (APPROVAL) */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-bold text-stone-500 uppercase tracking-widest border-b border-stone-100 dark:border-stone-800 pb-2">Wünsche von {partner?.name || 'Partner'}</h3>
+              {partnerIndividualItems.length === 0 && <p className="text-xs text-stone-400 italic">Keine Wünsche ausstehend.</p>}
+              {partnerIndividualItems.map(item => (
+                <div key={item.id} className="bg-[#C5A38E]/10 dark:bg-[#C5A38E]/5 border border-[#C5A38E]/20 p-4 rounded-2xl">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-bold text-sm leading-tight text-stone-800 dark:text-stone-200">{item.title}</span>
+                    <span className="text-xs font-bold text-[#C5A38E]">€ {item.price}</span>
+                  </div>
+                  <p className="text-[10px] text-stone-500 mb-3">Stimmst du diesem Kauf zu?</p>
+                  <div className="flex gap-2">
+                    <form action={async () => { "use server"; await approveBucketItem(item.id); }} className="flex-1">
+                      <button className="w-full h-8 bg-[#C5A38E] text-white rounded-lg text-xs font-bold shadow-sm flex items-center justify-center gap-1">
+                        <ThumbsUp size={12} /> Ja, kaufen
+                      </button>
+                    </form>
+                    <form action={async () => { "use server"; await deleteBucketItem(item.id); }}>
+                      <button className="w-8 h-8 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-stone-400 hover:text-rose-500 rounded-lg flex items-center justify-center transition-colors">
+                        <X size={14} />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+
           </div>
         </section>
 
