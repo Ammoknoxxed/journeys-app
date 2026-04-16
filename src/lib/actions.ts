@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 
 // --- HILFSFUNKTION: SECURITY CHECK ---
 async function requireAuth() {
@@ -15,26 +13,6 @@ async function requireAuth() {
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   if (!user) throw new Error("User in der Datenbank nicht gefunden.");
   return { session, user };
-}
-
-// --- BILDER UPLOAD (INTERN FÜR SCHWARZES BRETT) ---
-export async function uploadImage(formData: FormData) {
-  await requireAuth();
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("Kein Bild gefunden");
-
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  
-  const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-  const uploadDir = join(process.cwd(), "public/uploads");
-  const filepath = join(uploadDir, filename);
-  
-  // Erstellt den Ordner, falls er nicht existiert (für Railway Volumes)
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(filepath, buffer);
-  
-  return `/uploads/${filename}`;
 }
 
 // --- NUTZER & EINKOMMEN ---
@@ -438,41 +416,19 @@ export async function setGoveeDeviceState(id: string, cmdName: "color" | "bright
   }
 }
 
-export async function sendTvCommand(id: string, capability: string, command: string, args: any[] = []) {
-  await requireAuth();
-  const device = await prisma.smartDevice.findUnique({ where: { id } });
-  if (!device || !device.externalId) return;
-
-  const ST_TOKEN = process.env.SMARTTHINGS_TOKEN;
-  if (!ST_TOKEN) return;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${ST_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        commands: [{ component: "main", capability: capability, command: command, arguments: args }]
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    revalidatePath("/smarthome");
-  } catch (error) {
-    console.error("Samsung Control Error:", error);
-  }
-}
-
-// --- SCHWARZES BRETT (STICKY NOTES) ---
+// --- SCHWARZES BRETT (STICKY NOTES MIT BASE64 BILDER-HACK FÜR RAILWAY) ---
 export async function addStickyNote(formData: FormData) {
   const { user } = await requireAuth();
   const text = formData.get("text") as string;
   const file = formData.get("file") as File;
   let imageUrl = null;
 
+  // Verwandelt das Bild direkt in einen Datenbank-sicheren Text (Base64)
   if (file && file.size > 0) {
-    imageUrl = await uploadImage(formData);
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    imageUrl = `data:${file.type};base64,${base64}`;
   }
 
   if (!text && !imageUrl) return;
@@ -497,7 +453,6 @@ export async function consumePetFood() {
     const newAmount = petFood.cans - 1;
     await prisma.petFood.update({ where: { id: petFood.id }, data: { cans: newAmount } });
     
-    // Auto-Shopping-List Trigger!
     if (newAmount <= 3) {
       const existing = await prisma.shoppingItem.findFirst({ where: { title: { contains: "Mäusschen läuft leer" }, checked: false } });
       if (!existing) {
@@ -540,7 +495,7 @@ export async function deleteHealthEvent(id: string) {
   revalidatePath("/");
 }
 
-// --- PANTRY (VORRATSSCHRANK) ---
+// --- VORRATSSCHRANK (PANTRY) ---
 export async function updatePantryCount(id: string, change: number) {
   const item = await prisma.pantryItem.findUnique({ where: { id } });
   if (!item) return;
@@ -551,7 +506,6 @@ export async function updatePantryCount(id: string, change: number) {
     data: { count: newCount }
   });
 
-  // Auto-Shopping-Trigger
   if (newCount <= item.minCount) {
     const existing = await prisma.shoppingItem.findFirst({ where: { title: { contains: item.name }, checked: false } });
     if (!existing) {
@@ -561,16 +515,29 @@ export async function updatePantryCount(id: string, change: number) {
   revalidatePath("/");
 }
 
-export async function addPantryItem(name: string, minCount: number) {
+export async function addPantryItem(name: string) {
   await requireAuth();
-  await prisma.pantryItem.create({ data: { name, minCount, count: minCount + 1 } });
+  // Neues Element startet jetzt bei 0, Mindestbestand ist 1
+  await prisma.pantryItem.create({ data: { name, minCount: 1, count: 0 } });
   revalidatePath("/");
 }
 
-// --- ENERGY PREDICTOR ---
+export async function deletePantryItem(id: string) {
+  await requireAuth();
+  await prisma.pantryItem.delete({ where: { id } });
+  revalidatePath("/");
+}
+
+// --- ENERGY RADAR ---
 export async function addEnergyReading(type: string, value: number) {
   await requireAuth();
   await prisma.energyReading.create({ data: { type, value: Math.abs(value) } });
+  revalidatePath("/");
+}
+
+export async function deleteEnergyReading(id: string) {
+  await requireAuth();
+  await prisma.energyReading.delete({ where: { id } });
   revalidatePath("/");
 }
 
