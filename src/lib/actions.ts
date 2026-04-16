@@ -222,12 +222,12 @@ export async function markDateUsed(id: string) {
   revalidatePath("/roulette");
 }
 
-// --- MEAL PREP ---
-export async function addMealPlan(dayOfWeek: number, mealType: string, recipe: string, ingredientsInput: string) {
+// --- MEAL PREP (Angepasst für Notizen/Links) ---
+export async function addMealPlan(dayOfWeek: number, mealType: string, recipe: string, ingredientsInput: string, recipeNotes: string = "") {
   await requireAuth();
   const ingredients = ingredientsInput.split(',').map(i => i.trim()).filter(i => i.length > 0);
   await prisma.mealPlan.create({
-    data: { dayOfWeek, mealType, recipe, ingredients }
+    data: { dayOfWeek, mealType, recipe, ingredients, recipeNotes }
   });
   revalidatePath("/mealprep");
 }
@@ -251,11 +251,35 @@ export async function syncIngredientsToShoppingList(mealId: string) {
   revalidatePath("/shopping");
 }
 
-// --- TRESOR (VAULT) ---
-export async function addVaultItem(title: string, url: string) {
+// --- TRESOR (VAULT) (Angepasst für echten Datei-Upload Base64) ---
+export async function addVaultItem(formData: FormData) {
   const { user } = await requireAuth();
+  const title = formData.get("title") as string;
+  const url = formData.get("url") as string;
+  const file = formData.get("file") as File;
+  
+  let fileData = null;
+  let fileType = null;
+
+  if (file && file.size > 0) {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    fileType = file.type;
+    fileData = `data:${file.type};base64,${base64}`;
+  }
+
+  // Wenn weder eine Datei noch eine URL hochgeladen wurde, abbrechen
+  if (!url && !fileData) return;
+
   await prisma.vaultItem.create({
-    data: { title, url, addedBy: user.name }
+    data: { 
+      title, 
+      url: url || null, 
+      fileData, 
+      fileType, 
+      addedBy: user.name || "System" 
+    }
   });
   revalidatePath("/vault");
 }
@@ -288,19 +312,21 @@ export async function deleteGiftIdea(id: string) {
   revalidatePath("/gifts");
 }
 
-// --- KALENDER (TIMELINE) ---
+// --- KALENDER (TIMELINE) (Angepasst: Revalidiert nun auch das Dashboard) ---
 export async function addTimelineEvent(title: string, dateStr: string, type: string) {
   const { user } = await requireAuth();
   await prisma.timelineEvent.create({
     data: { title, date: new Date(dateStr), type, creatorId: user.id }
   });
   revalidatePath("/timeline");
+  revalidatePath("/"); // Update für das neue Dashboard-Widget
 }
 
 export async function deleteTimelineEvent(id: string) {
   await requireAuth();
   await prisma.timelineEvent.delete({ where: { id } });
   revalidatePath("/timeline");
+  revalidatePath("/"); // Update für das neue Dashboard-Widget
 }
 
 // --- WEEKLY SYNC (CHECK-IN) ---
@@ -312,10 +338,16 @@ export async function submitCheckIn(weekYear: string, highlight: string, stress:
   revalidatePath("/checkin");
 }
 
-// --- WELTKARTE & REISEKOFFER ---
+// --- WELTKARTE & REISEKOFFER (Angepasst für Budget und Löschen) ---
 export async function addTravelPoint(name: string, type: string) {
   await requireAuth();
   await prisma.travelPoint.create({ data: { name, type } });
+  revalidatePath("/map");
+}
+
+export async function deleteTravelPoint(id: string) {
+  await requireAuth();
+  await prisma.travelPoint.delete({ where: { id } });
   revalidatePath("/map");
 }
 
@@ -323,14 +355,18 @@ export async function deleteTrip(id: string) {
   await requireAuth();
   await prisma.trip.delete({ where: { id } });
   revalidatePath("/trips");
+  revalidatePath("/map");
+  revalidatePath("/");
 }
 
-export async function addTrip(title: string, destination: string, dateStr: string) {
+export async function addTrip(title: string, destination: string, dateStr: string, savedAmount: number = 0) {
   await requireAuth();
   await prisma.trip.create({
-    data: { title, destination, date: new Date(dateStr) }
+    data: { title, destination, date: new Date(dateStr), savedAmount: Math.abs(savedAmount) }
   });
   revalidatePath("/trips");
+  revalidatePath("/map");
+  revalidatePath("/");
 }
 
 // --- SMART HOME LOGIK ---

@@ -92,13 +92,16 @@ model MealPlan {
   mealType    String   
   recipe      String
   ingredients String[] 
+  recipeNotes String?  // NEU: Für Links oder Kochanleitungen
   createdAt   DateTime @default(now())
 }
 
 model VaultItem {
   id          String   @id @default(cuid())
   title       String
-  url         String   
+  url         String?  // Jetzt optional
+  fileData    String?  // NEU: Base64 Datei-Inhalt
+  fileType    String?  // NEU: z.B. application/pdf
   addedBy     String
   createdAt   DateTime @default(now())
 }
@@ -125,6 +128,7 @@ model Trip {
   title       String
   destination String
   date        DateTime
+  savedAmount Float    @default(0) // NEU: Angespartes Geld
   isCompleted Boolean  @default(false)
   createdAt   DateTime @default(now())
 }

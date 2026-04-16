@@ -20,7 +20,7 @@ import {
   Map, Heart, Lock, BookOpen, Calendar,
   Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
   Plus, X, Check, Camera, MessageSquare, Zap, Phone, Timer, Star,
-  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2
+  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2, Clock
 } from "lucide-react";
 
 // --- HILFSFUNKTIONEN ---
@@ -50,12 +50,20 @@ export default async function DashboardPage() {
   const lastCleanBox2 = await prisma.litterBoxLog.findFirst({ where: { boxId: 2 }, orderBy: { createdAt: 'desc' } });
   
   const pantryItems = await prisma.pantryItem.findMany({ orderBy: { name: 'asc' } });
-  const energyReadings = await prisma.energyReading.findMany({ orderBy: { date: 'asc' } }); // Aufsteigend für Berechnung
+  const energyReadings = await prisma.energyReading.findMany({ orderBy: { date: 'asc' } });
   let energySettings = await prisma.energySettings.findFirst();
   if (!energySettings) energySettings = await prisma.energySettings.create({ data: { kwhPrice: 0.35, monthlyPrepayment: 80 } });
 
   const contacts = await prisma.sharedContact.findMany({ orderBy: { role: 'asc' } });
-  const nextTrip = await prisma.trip.findFirst({ where: { date: { gte: new Date() } }, orderBy: { date: 'asc' } });
+  
+  // Trip & Kalender
+  const nextTrip = await prisma.trip.findFirst({ where: { date: { gte: new Date(new Date().setHours(0,0,0,0)) } }, orderBy: { date: 'asc' } });
+  // Demnächst: Die nächsten 3 Termine aus dem Kalender, die heute oder in der Zukunft liegen
+  const upcomingEvents = await prisma.timelineEvent.findMany({ 
+    where: { date: { gte: new Date(new Date().setHours(0,0,0,0)) } }, 
+    orderBy: { date: 'asc' }, 
+    take: 3 
+  });
 
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const expenses = await prisma.expense.findMany({
@@ -75,21 +83,17 @@ export default async function DashboardPage() {
   if (energyReadings.length >= 2) {
     const firstReading = energyReadings[0];
     const lastReading = energyReadings[energyReadings.length - 1];
-    
     const daysDiff = (lastReading.date.getTime() - firstReading.date.getTime()) / (1000 * 3600 * 24);
     if (daysDiff > 0) {
       const kwhConsumed = lastReading.value - firstReading.value;
       const dailyKwh = kwhConsumed / daysDiff;
-      const projectedYearlyKwh = dailyKwh * 365;
-      
-      const projectedYearlyCost = projectedYearlyKwh * energySettings.kwhPrice;
+      const projectedYearlyCost = (dailyKwh * 365) * energySettings.kwhPrice;
       const yearlyPrepayments = energySettings.monthlyPrepayment * 12;
-      
-      energyDifference = yearlyPrepayments - projectedYearlyCost; // Positiv = Gutschrift, Negativ = Nachzahlung
+      energyDifference = yearlyPrepayments - projectedYearlyCost; 
       energyForecast = { projectedYearlyCost, yearlyPrepayments, difference: energyDifference };
     }
   }
-  const displayReadings = [...energyReadings].reverse().slice(0, 5); // Für Anzeige nur die letzten 5
+  const displayReadings = [...energyReadings].reverse().slice(0, 5);
 
   // --- MATHEMATIK & LOGIK ---
   const myIncome = currentUser?.netIncome || 0;
@@ -123,9 +127,9 @@ export default async function DashboardPage() {
     { title: "Meal Prep", icon: <Utensils size={24} />, href: "/mealprep", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-500" },
     { title: "Date Night", icon: <Heart size={24} />, href: "/roulette", color: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-500" },
     { title: "Weltkarte", icon: <Map size={24} />, href: "/map", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-500" },
-    { title: "Home Wiki", icon: <BookOpen size={24} />, href: "/wiki", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-500" },
+    { title: "Kalender", icon: <Calendar size={24} />, href: "/timeline", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-500" },
     { title: "Gifts", icon: <Lock size={24} />, href: "/gifts", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-500" },
-    { title: "Timeline", icon: <Calendar size={24} />, href: "/timeline", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-500" },
+    { title: "Wiki", icon: <BookOpen size={24} />, href: "/wiki", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-500" },
     { title: "Check-In", icon: <ClipboardList size={24} />, href: "/checkin", color: "bg-lime-100 text-lime-700 dark:bg-lime-500/20 dark:text-lime-500" },
     { title: "Tresor", icon: <Wallet size={24} />, href: "/vault", color: "bg-stone-300 text-stone-800 dark:bg-stone-700/50 dark:text-stone-300" },
   ];
@@ -133,7 +137,6 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#FDFCFB] dark:bg-stone-950 text-stone-900 dark:text-stone-100 pb-40 font-sans selection:bg-[#C5A38E]/30">
       
-      {/* HEADER */}
       <header className="sticky top-0 z-40 bg-[#FDFCFB]/80 dark:bg-stone-950/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-stone-800/50 px-4 md:px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl md:text-2xl font-bold tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
           Die Höhle <span className="text-[#C5A38E] font-light">HQ</span>
@@ -146,20 +149,20 @@ export default async function DashboardPage() {
 
       <main className="max-w-6xl mx-auto px-4 md:px-8 mt-6 space-y-8">
         
-        {/* RECAP & COUNTDOWN ROW */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-6 rounded-[2.5rem] flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 mb-1">
+        {/* RECAP, COUNTDOWN & DEMNÄCHST ROW */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-6 rounded-[2.5rem] flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                 <Star size={16} />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Weekly Recap</span>
               </div>
-              <p className="text-sm font-medium">Gemeinsam {choresDoneThisWeek} Aufgaben erledigt & € {weeklyExpenses.toFixed(0)} investiert.</p>
+              <TrendingUp size={20} className="text-emerald-500" />
             </div>
-            <TrendingUp size={24} className="text-emerald-500" />
+            <p className="text-sm font-medium">Gemeinsam {choresDoneThisWeek} Aufgaben erledigt & € {weeklyExpenses.toFixed(0)} investiert.</p>
           </div>
 
-          <div className="bg-[#C5A38E] text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-lg relative overflow-hidden">
+          <div className="bg-[#C5A38E] text-white p-6 rounded-[2.5rem] flex flex-col justify-center shadow-lg relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center gap-2 opacity-80 mb-1">
                 <Timer size={16} />
@@ -167,9 +170,34 @@ export default async function DashboardPage() {
                   Trip: {nextTrip?.destination || 'Nächster Halt...'}
                 </span>
               </div>
-              <p className="text-2xl font-light">{daysUntilTrip !== null ? `Noch ${daysUntilTrip} Tage!` : 'Plane einen Trip in der Weltkarte'}</p>
+              <p className="text-2xl font-light">{daysUntilTrip !== null ? `Noch ${daysUntilTrip} Tage!` : 'Plane eine Reise in der Karte'}</p>
             </div>
             <Map size={48} className="opacity-20 absolute -right-4 -bottom-4" />
+          </div>
+
+          {/* NEUES WIDGET: DEMNÄCHST (KALENDER) */}
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-5 rounded-[2.5rem] shadow-sm flex flex-col">
+            <div className="flex items-center gap-2 text-indigo-500 mb-3">
+              <Clock size={16} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Demnächst</span>
+            </div>
+            <div className="space-y-2 flex-1">
+              {upcomingEvents.length === 0 ? (
+                <p className="text-xs text-stone-400 italic">Keine anstehenden Termine.</p>
+              ) : (
+                upcomingEvents.map(ev => {
+                  const isToday = ev.date.toDateString() === new Date().toDateString();
+                  return (
+                    <div key={ev.id} className="flex justify-between items-center text-sm border-b border-stone-100 dark:border-stone-800/50 pb-1">
+                      <span className={`truncate max-w-[65%] ${isToday ? 'font-bold text-[#C5A38E]' : 'font-medium'}`}>{ev.title}</span>
+                      <span className={`text-[10px] tabular-nums ${isToday ? 'text-[#C5A38E] font-bold' : 'text-stone-400'}`}>
+                        {isToday ? 'Heute' : ev.date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
           </div>
         </section>
 
@@ -353,7 +381,7 @@ export default async function DashboardPage() {
             </div>
             <form action={async (formData) => { "use server"; await addPantryItem(formData.get("name") as string); }} className="mt-4 flex gap-2">
               <input name="name" placeholder="Hinzufügen..." className="flex-1 h-10 bg-stone-50 dark:bg-stone-950 px-4 rounded-xl text-xs outline-none" required />
-              <button className="w-10 h-10 bg-[#C5A38E] text-white rounded-xl shadow-sm"><Plus size={16} className="mx-auto" /></button>
+              <button className="w-10 h-10 bg-[#C5A38E] text-white rounded-xl shadow-sm hover:bg-[#A38572] transition-colors"><Plus size={16} className="mx-auto" /></button>
             </form>
           </div>
 
@@ -416,7 +444,7 @@ export default async function DashboardPage() {
             </form>
           </div>
 
-          {/* SHARED CONTACTS (ACCORDION) */}
+          {/* SHARED CONTACTS */}
           <div className="bg-stone-900 text-white rounded-[2.5rem] p-6 shadow-xl flex flex-col h-[400px]">
             <div className="flex items-center gap-2 mb-4 text-[#C5A38E]">
               <Phone size={18} />
@@ -450,7 +478,7 @@ export default async function DashboardPage() {
               <input name="r" placeholder="Rolle (z.B. Vermieter)" className="bg-stone-800 px-3 h-10 rounded-xl text-[10px] outline-none" required />
               <input name="p" placeholder="Telefon (optional)" className="bg-stone-800 px-3 h-10 rounded-xl text-[10px] outline-none" />
               <input name="e" placeholder="E-Mail (optional)" className="bg-stone-800 px-3 h-10 rounded-xl text-[10px] outline-none" />
-              <button className="col-span-2 h-10 bg-[#C5A38E] text-white rounded-xl text-[10px] font-bold">Kontakt hinzufügen</button>
+              <button className="col-span-2 h-10 bg-[#C5A38E] hover:bg-[#A38572] text-white rounded-xl text-[10px] font-bold transition-colors">Kontakt hinzufügen</button>
             </form>
           </div>
 
@@ -475,7 +503,6 @@ export default async function DashboardPage() {
                   </div>
                   {note.text && <p className="text-sm">{note.text}</p>}
                   
-                  {/* Der geniale HTML-Hack für Vollbild-Bilder */}
                   {note.imageUrl && (
                     <div className="mt-3 relative group/img">
                       <a href={`#img-${note.id}`} className="block rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-700 shadow-sm relative">
@@ -484,7 +511,6 @@ export default async function DashboardPage() {
                            <Maximize2 className="text-white" size={24} />
                         </div>
                       </a>
-                      {/* CSS Modal Target */}
                       <div id={`img-${note.id}`} className="fixed inset-0 z-50 bg-black/90 hidden target:flex items-center justify-center p-4">
                         <a href="#!" className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-rose-500 transition-colors"><X size={24}/></a>
                         <img src={note.imageUrl} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
@@ -497,7 +523,7 @@ export default async function DashboardPage() {
             <form action={addStickyNote} className="mt-4 flex gap-2">
               <input name="text" placeholder="Notiz hinterlassen..." className="flex-1 h-12 bg-stone-50 dark:bg-stone-950 px-5 rounded-2xl outline-none text-sm" />
               <label className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-[#C5A38E] hover:text-white transition-all">
-                <Camera size={20} /><input type="file" name="file" className="hidden" />
+                <Camera size={20} /><input type="file" name="file" className="hidden" accept="image/*" />
               </label>
               <button className="px-6 h-12 bg-[#C5A38E] text-white rounded-2xl font-bold shadow-md">Senden</button>
             </form>
