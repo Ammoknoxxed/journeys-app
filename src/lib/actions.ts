@@ -543,3 +543,46 @@ export async function deleteHealthEvent(id: string) {
   await prisma.petHealthEvent.delete({ where: { id } });
   revalidatePath("/");
 }
+
+// --- PANTRY (VORRATSSCHRANK) ---
+export async function updatePantryCount(id: string, change: number) {
+  const item = await prisma.pantryItem.findUnique({ where: { id } });
+  if (!item) return;
+
+  const newCount = Math.max(0, item.count + change);
+  await prisma.pantryItem.update({
+    where: { id },
+    data: { count: newCount }
+  });
+
+  // Auto-Shopping-Trigger
+  if (newCount <= item.minCount) {
+    const existing = await prisma.shoppingItem.findFirst({ where: { title: { contains: item.name }, checked: false } });
+    if (!existing) {
+      await prisma.shoppingItem.create({ data: { title: `🛒 Vorrat leer: ${item.name}` } });
+    }
+  }
+  revalidatePath("/");
+}
+
+export async function addPantryItem(name: string, minCount: number) {
+  await prisma.pantryItem.create({ data: { name, minCount, count: minCount + 1 } });
+  revalidatePath("/");
+}
+
+// --- ENERGY PREDICTOR ---
+export async function addEnergyReading(type: string, value: number) {
+  await prisma.energyReading.create({ data: { type, value: Math.abs(value) } });
+  revalidatePath("/");
+}
+
+// --- SHARED CONTACTS ---
+export async function addSharedContact(name: string, role: string, phone?: string, email?: string) {
+  await prisma.sharedContact.create({ data: { name, role, phone, email } });
+  revalidatePath("/");
+}
+
+export async function deleteSharedContact(id: string) {
+  await prisma.sharedContact.delete({ where: { id } });
+  revalidatePath("/");
+}

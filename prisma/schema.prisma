@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -207,4 +208,27 @@ model PetHealthEvent {
   id        String   @id @default(cuid())
   title     String   // z.B. "Wurmkur", "Impfung", "Check-Up"
   dueDate   DateTime
+}
+
+model PantryItem {
+  id        String   @id @default(cuid())
+  name      String
+  count     Int      @default(0)
+  minCount  Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model EnergyReading {
+  id        String   @id @default(cuid())
+  type      String   // STROM, GAS, WASSER
+  value     Float
+  date      DateTime @default(now())
+}
+
+model SharedContact {
+  id        String   @id @default(cuid())
+  name      String
+  role      String   // z.B. Vermieter, Tierarzt
+  phone     String?
+  email     String?
 }
