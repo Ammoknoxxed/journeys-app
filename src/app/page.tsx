@@ -20,7 +20,7 @@ import {
   Map, Heart, Lock, BookOpen, Calendar,
   Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
   Plus, X, Check, Camera, MessageSquare, Zap, Phone, Timer, Star,
-  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2, Clock, AlertTriangle, PieChart
+  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2, Clock, AlertTriangle, PieChart, Wifi 
 } from "lucide-react";
 
 function getHygieneStatus(lastCleanAt?: Date | null) {
@@ -168,6 +168,7 @@ export default async function DashboardPage() {
 
   const apps = [
     { title: "Statistik", icon: <PieChart size={24} />, href: "/statistics", color: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-500" },
+    { title: "Gäste", icon: <Wifi size={24} />, href: "/guests", color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-500" },
     { title: "Smart Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
     { title: "Abos", icon: <TrendingUp size={24} />, href: "/subscriptions", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-500" },
     { title: "Shopping", icon: <ShoppingCart size={24} />, href: "/shopping", badge: openShoppingItemsCount, color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-500" },
