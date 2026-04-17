@@ -35,14 +35,13 @@ export default function RecipeForm() {
 
         await addRecipe(title, instructions, JSON.stringify(validIngredients));
 
-        // Formular danach komplett leeren
         setIngredients([{ amount: 1, unit: "Stück", name: "" }]);
         form.reset();
      });
   };
 
   return (
-     <form onSubmit={handleSubmit} className="bg-stone-900 p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col gap-6 border border-stone-800 transition-colors">
+     <form onSubmit={handleSubmit} className="bg-stone-900 p-6 md:p-8 rounded-[2.5rem] shadow-xl flex flex-col gap-6 border border-stone-800 transition-colors w-full overflow-hidden">
         <div className="border-b border-stone-800 pb-4">
            <p className="text-[10px] uppercase font-bold text-[#C5A38E] tracking-widest mb-1">Neues Rezept</p>
            <h3 className="text-white font-medium text-sm">Ins Kochbuch aufnehmen</h3>
@@ -55,24 +54,25 @@ export default function RecipeForm() {
            required 
         />
         
-        <div className="space-y-3">
+        <div className="space-y-3 w-full">
            <p className="text-[10px] uppercase font-bold text-stone-500 tracking-widest">Zutaten</p>
            
            {ingredients.map((ing, i) => (
-             <div key={i} className="flex gap-2 items-center">
+             <div key={i} className="flex gap-1.5 sm:gap-2 items-center w-full">
                 <input 
                   type="number" 
                   step="any"
                   value={ing.amount}
                   onChange={(e) => handleChange(i, "amount", e.target.value)}
                   placeholder="Menge" 
-                  className="w-20 bg-stone-800 border-none text-xs px-3 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white text-center" 
+                  // flex-shrink-0 verhindert, dass das Feld weggedrückt wird. w-14 für Mobile, w-16 für Desktop
+                  className="w-14 sm:w-16 flex-shrink-0 bg-stone-800 border-none text-xs px-2 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white text-center" 
                   required 
                 />
                 <select 
                   value={ing.unit}
                   onChange={(e) => handleChange(i, "unit", e.target.value)}
-                  className="w-24 bg-stone-800 border-none text-xs px-2 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white"
+                  className="w-20 sm:w-24 flex-shrink-0 bg-stone-800 border-none text-[11px] sm:text-xs px-1 sm:px-2 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white"
                 >
                   <option value="Stück">Stück</option>
                   <option value="Gramm">Gramm</option>
@@ -88,11 +88,12 @@ export default function RecipeForm() {
                   type="text"
                   value={ing.name}
                   onChange={(e) => handleChange(i, "name", e.target.value)}
-                  placeholder="Zutat (z.B. Nudeln)" 
-                  className="flex-1 bg-stone-800 border-none text-xs px-3 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white" 
+                  placeholder="Zutat" 
+                  // min-w-0 ist hier der magische Fix, der das Rausragen verhindert!
+                  className="flex-1 min-w-0 bg-stone-800 border-none text-xs px-3 py-3 rounded-xl outline-none focus:ring-1 focus:ring-[#C5A38E] text-white" 
                   required 
                 />
-                <button type="button" onClick={() => handleRemove(i)} className="text-stone-500 hover:text-rose-500 transition-colors p-2">
+                <button type="button" onClick={() => handleRemove(i)} className="flex-shrink-0 text-stone-500 hover:text-rose-500 transition-colors p-1 sm:p-2">
                   <X size={14} />
                 </button>
              </div>
