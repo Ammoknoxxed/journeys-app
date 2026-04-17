@@ -100,6 +100,26 @@ model DateIdea {
   createdAt   DateTime @default(now())
 }
 
+// --- NEU: MEAL PREP 2.0 ---
+model Recipe {
+  id           String             @id @default(cuid())
+  title        String
+  instructions String?
+  ingredients  RecipeIngredient[]
+  mealPlans    MealPlan[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model RecipeIngredient {
+  id        String   @id @default(cuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name      String
+  amount    Float
+  unit      String   @default("Stück")
+}
+
 model MealPlan {
   id          String   @id @default(cuid())
   dayOfWeek   Int      
@@ -107,8 +127,14 @@ model MealPlan {
   recipe      String
   ingredients String[] 
   recipeNotes String?
+  
+  recipeId    String?  // NEU: Verknüpfung zum Kochbuch
+  recipeRel   Recipe?  @relation(fields: [recipeId], references: [id])
+  isCooked    Boolean  @default(false) // NEU: Für den automatischen Vorrats-Abzug
+  
   createdAt   DateTime @default(now())
 }
+// --------------------------
 
 model VaultItem {
   id          String   @id @default(cuid())

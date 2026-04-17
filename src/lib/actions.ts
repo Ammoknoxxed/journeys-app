@@ -125,19 +125,34 @@ export async function deleteSubscription(id: string) {
   revalidatePath("/");
 }
 
-// NEU: Jetzt mit category
 export async function addExpense(title: string, amount: number, category: string = "Allgemein") {
   const { user } = await requireAuth();
   await prisma.expense.create({
     data: { title, amount: Math.abs(amount), category, userId: user.id }
   });
   revalidatePath("/");
-  revalidatePath("/statistics"); // Statistik auch updaten
+  revalidatePath("/statistics");
 }
 
 export async function deleteExpense(id: string) {
   await requireAuth();
   await prisma.expense.delete({ where: { id } });
+  revalidatePath("/");
+  revalidatePath("/statistics");
+}
+
+export async function addIncome(title: string, amount: number) {
+  const { user } = await requireAuth();
+  await prisma.income.create({
+    data: { title, amount: Math.abs(amount), userId: user.id }
+  });
+  revalidatePath("/");
+  revalidatePath("/statistics");
+}
+
+export async function deleteIncome(id: string) {
+  await requireAuth();
+  await prisma.income.delete({ where: { id } });
   revalidatePath("/");
   revalidatePath("/statistics");
 }
@@ -244,14 +259,122 @@ export async function markDateUsed(id: string) {
   revalidatePath("/roulette");
 }
 
-export async function addMealPlan(dayOfWeek: number, mealType: string, recipe: string, ingredientsInput: string, recipeNotes: string = "") {
+// --- MEAL PREP 2.0 (Intelligenter Abgleich mit Vorrat) ---
+export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInput: string, ingredientsInput: string, recipeNotes: string = "", recipeId?: string) {
   await requireAuth();
-  const ingredients = ingredientsInput.split(',').map(i => i.trim()).filter(i => i.length > 0);
-  await prisma.mealPlan.create({
-    data: { dayOfWeek, mealType, recipe, ingredients, recipeNotes }
+  
+  if (recipeId) {
+    // 1. Es wurde ein Rezept aus dem Kochbuch gewählt!
+    const recipe = await prisma.recipe.findUnique({ where: { id: recipeId }, include: { ingredients: true } });
+    if (recipe) {
+      await prisma.mealPlan.create({
+        data: { 
+          dayOfWeek, 
+          mealType, 
+          recipe: recipe.title, 
+          recipeId: recipe.id, 
+          ingredients: recipe.ingredients.map(i => `${i.amount} ${i.unit} ${i.name}`), 
+          recipeNotes: recipe.instructions 
+        }
+      });
+
+      // 2. Smart Check: Gibt es die Zutaten im Vorrat?
+      for (const ing of recipe.ingredients) {
+        const pantryItem = await prisma.pantryItem.findFirst({ where: { name: { equals: ing.name, mode: 'insensitive' } } });
+        let missingAmount = ing.amount;
+        let pItemId = null;
+        
+        if (pantryItem) {
+           pItemId = pantryItem.id;
+           if (pantryItem.count >= ing.amount) missingAmount = 0; // Wir haben genug!
+           else missingAmount = ing.amount - pantryItem.count; // Nur die Differenz einkaufen
+        }
+        
+        if (missingAmount > 0) {
+           // Ab auf die Einkaufsliste damit!
+           const existingShopItem = await prisma.shoppingItem.findFirst({ where: { title: { contains: ing.name, mode: 'insensitive' }, checked: false } });
+           if (!existingShopItem) {
+              await prisma.shoppingItem.create({ data: { title: `${ing.name} (für ${recipe.title})`, amount: missingAmount, unit: ing.unit, pantryItemId: pItemId } });
+           } else {
+              await prisma.shoppingItem.update({ where: { id: existingShopItem.id }, data: { amount: (existingShopItem.amount || 0) + missingAmount } });
+           }
+        }
+      }
+    }
+  } else {
+    // 3. Fallback: Manuelle Eingabe (Wie bisher)
+    const ingredients = ingredientsInput.split(',').map(i => i.trim()).filter(i => i.length > 0);
+    await prisma.mealPlan.create({
+      data: { dayOfWeek, mealType, recipe: recipeInput, ingredients, recipeNotes }
+    });
+  }
+  
+  revalidatePath("/mealprep");
+  revalidatePath("/shopping");
+}
+
+export async function markMealCooked(mealId: string) {
+  await requireAuth();
+  const meal = await prisma.mealPlan.findUnique({ where: { id: mealId } });
+  if (!meal || meal.isCooked) return;
+
+  // Wenn es ein Rezept aus dem Kochbuch war, buchen wir die Zutaten automatisch aus dem Vorrat ab!
+  if (meal.recipeId) {
+    const recipe = await prisma.recipe.findUnique({ where: { id: meal.recipeId }, include: { ingredients: true } });
+    if (recipe) {
+      for (const ing of recipe.ingredients) {
+        const pantryItem = await prisma.pantryItem.findFirst({ where: { name: { equals: ing.name, mode: 'insensitive' } } });
+        if (pantryItem) {
+          const newCount = Math.max(0, pantryItem.count - ing.amount);
+          await prisma.pantryItem.update({ where: { id: pantryItem.id }, data: { count: newCount } });
+          
+          // Fällt der Bestand unter Minimum? Ab auf die Einkaufsliste!
+          if (newCount < pantryItem.minCount) {
+            const existingShop = await prisma.shoppingItem.findFirst({ where: { pantryItemId: pantryItem.id, checked: false } });
+            if (!existingShop) {
+              await prisma.shoppingItem.create({ data: { title: pantryItem.name, pantryItemId: pantryItem.id, unit: pantryItem.unit } });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  await prisma.mealPlan.update({ where: { id: mealId }, data: { isCooked: true } });
+  revalidatePath("/mealprep");
+  revalidatePath("/"); // Update Vorrat auf dem Dashboard
+}
+
+export async function addRecipe(title: string, instructions: string, ingredientsText: string) {
+  await requireAuth();
+  const lines = ingredientsText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  // CLEVER PARSER: Liest Formate wie "500 Gramm Hackfleisch" automatisch aus
+  const parsedIngredients = lines.map(line => {
+     const match = line.match(/^([\d.,]+)\s*([a-zA-ZäöüÄÖÜß]+)\s+(.+)$/i);
+     if (match) {
+        const amount = parseFloat(match[1].replace(',', '.'));
+        return { amount: isNaN(amount) ? 1 : amount, unit: match[2], name: match[3].trim() };
+     }
+     return { amount: 1, unit: "Stück", name: line }; // Fallback
+  });
+
+  await prisma.recipe.create({
+    data: {
+      title,
+      instructions,
+      ingredients: { create: parsedIngredients }
+    }
   });
   revalidatePath("/mealprep");
 }
+
+export async function deleteRecipe(id: string) {
+  await requireAuth();
+  await prisma.recipe.delete({ where: { id } });
+  revalidatePath("/mealprep");
+}
+// ---------------------------------------------------------
 
 export async function deleteMealPlan(id: string) {
   await requireAuth();
@@ -292,13 +415,7 @@ export async function addVaultItem(formData: FormData) {
   if (!url && !fileData) return;
 
   await prisma.vaultItem.create({
-    data: { 
-      title, 
-      url: url || null, 
-      fileData, 
-      fileType, 
-      addedBy: user.name || "System" 
-    }
+    data: { title, url: url || null, fileData, fileType, addedBy: user.name || "System" }
   });
   revalidatePath("/vault");
 }
@@ -387,14 +504,7 @@ export async function addTrip(title: string, destination: string, dateStr: strin
 export async function addSmartDevice(name: string, type: string, room: string, externalId?: string, modelCode?: string) {
   const { user } = await requireAuth();
   await prisma.smartDevice.create({
-    data: { 
-      name, 
-      type, 
-      room, 
-      externalId, 
-      modelCode,
-      addedBy: user.name 
-    }
+    data: { name, type, room, externalId, modelCode, addedBy: user.name }
   });
   revalidatePath("/smarthome");
 }
@@ -603,11 +713,7 @@ export async function setPantryCount(id: string, count: number) {
     const existing = await prisma.shoppingItem.findFirst({ where: { pantryItemId: item.id, checked: false } });
     if (!existing) {
       await prisma.shoppingItem.create({ 
-        data: { 
-          title: item.name,
-          pantryItemId: item.id,
-          unit: item.unit
-        } 
+        data: { title: item.name, pantryItemId: item.id, unit: item.unit } 
       });
     }
   }
@@ -661,20 +767,4 @@ export async function deleteSharedContact(id: string) {
   await requireAuth();
   await prisma.sharedContact.delete({ where: { id } });
   revalidatePath("/");
-}
-
-export async function addIncome(title: string, amount: number) {
-  const { user } = await requireAuth();
-  await prisma.income.create({
-    data: { title, amount: Math.abs(amount), userId: user.id }
-  });
-  revalidatePath("/");
-  revalidatePath("/statistics");
-}
-
-export async function deleteIncome(id: string) {
-  await requireAuth();
-  await prisma.income.delete({ where: { id } });
-  revalidatePath("/");
-  revalidatePath("/statistics");
 }
