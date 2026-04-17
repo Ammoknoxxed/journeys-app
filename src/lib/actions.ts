@@ -259,7 +259,7 @@ export async function markDateUsed(id: string) {
   revalidatePath("/roulette");
 }
 
-// --- MEAL PREP 2.0 ---
+// --- MEAL PREP 2.0 (Smart Match Version) ---
 export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInput: string, ingredientsInput: string, recipeNotes: string = "", recipeId?: string) {
   await requireAuth();
   
@@ -277,8 +277,17 @@ export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInp
         }
       });
 
+      // Wir laden ALLE Vorratsartikel in den Speicher für den smarten Abgleich
+      const allPantryItems = await prisma.pantryItem.findMany();
+
       for (const ing of recipe.ingredients) {
-        const pantryItem = await prisma.pantryItem.findFirst({ where: { name: { equals: ing.name, mode: 'insensitive' } } });
+        // SMART MATCH: Guckt, ob die Wörter sich überschneiden (z.B. "Nudel" vs "Nudeln")
+        const pantryItem = allPantryItems.find(p => 
+          p.name.toLowerCase() === ing.name.toLowerCase() ||
+          ing.name.toLowerCase().includes(p.name.toLowerCase()) ||
+          p.name.toLowerCase().includes(ing.name.toLowerCase())
+        );
+
         let missingAmount = ing.amount;
         let pItemId = null;
         
@@ -289,7 +298,11 @@ export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInp
         }
         
         if (missingAmount > 0) {
-           const existingShopItem = await prisma.shoppingItem.findFirst({ where: { title: { contains: ing.name, mode: 'insensitive' }, checked: false } });
+           // Wir gucken auch hier mit Smart Match, ob es schon auf der Liste steht
+           const existingShopItem = await prisma.shoppingItem.findFirst({ 
+             where: { title: { contains: ing.name, mode: 'insensitive' }, checked: false } 
+           });
+
            if (!existingShopItem) {
               await prisma.shoppingItem.create({ data: { title: `${ing.name} (für ${recipe.title})`, amount: missingAmount, unit: ing.unit, pantryItemId: pItemId } });
            } else {
@@ -317,8 +330,16 @@ export async function markMealCooked(mealId: string) {
   if (meal.recipeId) {
     const recipe = await prisma.recipe.findUnique({ where: { id: meal.recipeId }, include: { ingredients: true } });
     if (recipe) {
+      // Auch hier laden wir alle Vorratsartikel für den smarten Abgleich
+      const allPantryItems = await prisma.pantryItem.findMany();
+
       for (const ing of recipe.ingredients) {
-        const pantryItem = await prisma.pantryItem.findFirst({ where: { name: { equals: ing.name, mode: 'insensitive' } } });
+        const pantryItem = allPantryItems.find(p => 
+          p.name.toLowerCase() === ing.name.toLowerCase() ||
+          ing.name.toLowerCase().includes(p.name.toLowerCase()) ||
+          p.name.toLowerCase().includes(ing.name.toLowerCase())
+        );
+
         if (pantryItem) {
           const newCount = Math.max(0, pantryItem.count - ing.amount);
           await prisma.pantryItem.update({ where: { id: pantryItem.id }, data: { count: newCount } });
@@ -339,7 +360,6 @@ export async function markMealCooked(mealId: string) {
   revalidatePath("/");
 }
 
-// NEU: Erwartet jetzt einen JSON String, der fehlerfrei geparst wird!
 export async function addRecipe(title: string, instructions: string, ingredientsJson: string) {
   await requireAuth();
   const parsedIngredients = JSON.parse(ingredientsJson).map((ing: any) => ({
