@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { addMealPlan, deleteMealPlan, syncIngredientsToShoppingList, addRecipe, deleteRecipe, markMealCooked } from "@/lib/actions";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Trash2, Utensils, BookOpen, CheckCircle, ChevronRight, PlusCircle, Sparkles } from "lucide-react";
+// HIER WURDE 'ShoppingCart' HINZUGEFÜGT:
+import { Trash2, Utensils, BookOpen, CheckCircle, ChevronRight, PlusCircle, Sparkles, ShoppingCart } from "lucide-react";
 
 const DAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
@@ -14,7 +15,6 @@ export default async function MealPrepPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  // Wir laden sowohl die Essenspläne als auch die neue Rezept-Datenbank
   const meals = await prisma.mealPlan.findMany({ orderBy: { dayOfWeek: 'asc' } });
   const recipes = await prisma.recipe.findMany({ include: { ingredients: true }, orderBy: { title: 'asc' } });
 
@@ -52,7 +52,7 @@ export default async function MealPrepPage() {
                  "use server";
                  const rId = formData.get("recipeId") as string;
                  const mTitle = formData.get("manualTitle") as string;
-                 const title = rId ? "Rezept" : mTitle; // Das Action-Script zieht sich den echten Titel, wenn rId gesetzt ist
+                 const title = rId ? "Rezept" : mTitle; 
                  await addMealPlan(
                    parseInt(formData.get("dayOfWeek") as string),
                    formData.get("mealType") as string,
