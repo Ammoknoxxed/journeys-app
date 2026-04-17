@@ -10,8 +10,8 @@ export default function GuestsPage() {
   const [copied, setCopied] = useState(false);
   
   // HIER EURE ECHTEN WLAN-DATEN EINTRAGEN
-  const wifiName = "DieHoehle_5G";
-  const wifiPassword = "SuperGeheimesPasswort123";
+  const wifiName = "MagentaWLAN-1R19";
+  const wifiPassword = "55992058316888683204";
   
   // Generiert automatisch einen scannbaren QR-Code für iPhones/Androids
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=WIFI:S:${wifiName};T:WPA;P:${wifiPassword};;`;
