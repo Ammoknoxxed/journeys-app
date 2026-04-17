@@ -20,7 +20,7 @@ import {
   Map, Heart, Lock, BookOpen, Calendar,
   Cat, CheckCircle2, TrendingUp, PiggyBank, ClipboardList,
   Plus, X, Check, Camera, MessageSquare, Zap, Phone, Timer, Star,
-  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2, Clock, AlertTriangle, PieChart
+  Trash2, ThumbsUp, ChevronDown, Settings, Maximize2, Clock, AlertTriangle, PieChart, Wifi
 } from "lucide-react";
 
 function getHygieneStatus(lastCleanAt?: Date | null) {
