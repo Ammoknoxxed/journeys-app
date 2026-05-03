@@ -249,8 +249,9 @@ model LitterBoxLog {
 
 model PetHealthEvent {
   id        String   @id @default(cuid())
-  title     String   
+  title     String
   dueDate   DateTime
+  petName   String   @default("Beide") // NEU: Für Püppi oder Lio
 }
 
 model PantryItem {

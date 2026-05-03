@@ -663,20 +663,35 @@ export async function deleteStickyNote(id: string) {
   revalidatePath("/");
 }
 
-export async function consumePetFood() {
+export async function consumePetFood(formData: FormData) {
   await requireAuth();
+  
+  // Liest aus, ob wir 1 oder 2 Dosen abziehen
+  const amountStr = formData.get("amount") as string;
+  const amount = amountStr ? parseInt(amountStr) : 1;
+
   const petFood = await prisma.petFood.findFirst();
   if (petFood && petFood.cans > 0) {
-    const newAmount = petFood.cans - 1;
+    const newAmount = Math.max(0, petFood.cans - amount);
     await prisma.petFood.update({ where: { id: petFood.id }, data: { cans: newAmount } });
     
-    if (newAmount <= 3) {
+    // WARNUNG GEÄNDERT: Löst jetzt schon bei 6 Dosen aus (da 2 Katzen)
+    if (newAmount <= 6) {
       const existing = await prisma.shoppingItem.findFirst({ where: { title: { contains: "Mäusschen läuft leer" }, checked: false } });
       if (!existing) {
         await prisma.shoppingItem.create({ data: { title: "🚨 Katzenfutter (Mäusschen läuft leer!)" } });
       }
     }
   }
+  revalidatePath("/");
+}
+
+// NIMMT JETZT DEN KATZENNAMEN MIT AUF
+export async function addHealthEvent(title: string, dateStr: string, petName: string = "Beide") {
+  await requireAuth();
+  await prisma.petHealthEvent.create({
+    data: { title, dueDate: new Date(dateStr), petName }
+  });
   revalidatePath("/");
 }
 
