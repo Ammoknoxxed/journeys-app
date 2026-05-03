@@ -3,8 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import DashboardClassic from "@/components/dashboards/DashboardClassic";
-import DashboardModern from "@/components/dashboards/DashboardModern";
+
+// HIER IST DER FIX: Großes 'D' bei Dashboards
+import DashboardClassic from "@/components/Dashboards/DashboardClassic";
+import DashboardModern from "@/components/Dashboards/DashboardModern";
 
 export default async function Page() {
   const session = await getServerSession(authOptions);
