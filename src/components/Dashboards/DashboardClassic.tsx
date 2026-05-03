@@ -1,14 +1,5 @@
-// src/app/page.tsx
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+// src/components/dashboards/DashboardClassic.tsx
 import { Suspense } from "react";
-import { 
-  addBucketItem, setPantryCount, addPantryItem, deletePantryItem,
-  addEnergyReading, deleteEnergyReading, updateEnergySettings,
-  addSharedContact, deleteSharedContact
-} from "@/lib/actions";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import SubmitButton from "@/components/SubmitButton";
@@ -16,47 +7,24 @@ import StickyNotesWidget from "@/components/widgets/StickyNotesWidget";
 import PetWidget from "@/components/widgets/PetWidget";
 import BucketListWidget from "@/components/widgets/BucketListWidget";
 import FinanceWidget from "@/components/widgets/FinanceWidget";
+import { updateUiLayout, addBucketItem, setPantryCount, addPantryItem, deletePantryItem, addEnergyReading, deleteEnergyReading, updateEnergySettings, addSharedContact, deleteSharedContact } from "@/lib/actions";
 import { 
   LayoutDashboard, Wallet, ShoppingCart, Utensils, Map, Heart, Lock, 
   BookOpen, Calendar, CheckCircle2, TrendingUp, Plus, Trash2, 
-  Settings, Clock, PieChart, Wifi, Zap, Phone, Timer, Star
+  Settings, Clock, PieChart, Wifi, Zap, Phone, Timer, Star, MonitorSmartphone
 } from "lucide-react";
 
-export default async function DashboardClassic({ currentUser, allUsers, /* ... alle Variablen */ }: any)
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/login");
+export default function DashboardClassic({ currentUser, data }: any) {
+  const weeklyExpenses = data.weeklyExpensesAgg?._sum?.amount || 0;
+  const daysUntilTrip = data.nextTrip ? Math.ceil((data.nextTrip.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
-  const todayZero = new Date(new Date().setHours(0,0,0,0));
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const [
-    currentUser, openShoppingItemsCount, pantryItems,
-    energyReadings, energySettingsResult, contacts, nextTrip,
-    upcomingEvents, weeklyExpensesAgg, choresDoneThisWeek
-  ] = await Promise.all([
-    prisma.user.findUnique({ where: { email: session.user.email } }),
-    prisma.shoppingItem.count({ where: { checked: false } }),
-    prisma.pantryItem.findMany({ orderBy: { name: 'asc' } }),
-    prisma.energyReading.findMany({ orderBy: { date: 'asc' } }),
-    prisma.energySettings.findFirst(),
-    prisma.sharedContact.findMany({ orderBy: { role: 'asc' } }),
-    prisma.trip.findFirst({ where: { date: { gte: todayZero } }, orderBy: { date: 'asc' } }),
-    prisma.timelineEvent.findMany({ where: { date: { gte: todayZero } }, orderBy: { date: 'asc' }, take: 3 }),
-    prisma.expense.aggregate({ where: { date: { gte: sevenDaysAgo } }, _sum: { amount: true } }),
-    prisma.chore.count({ where: { lastDoneAt: { gte: sevenDaysAgo } } })
-  ]);
-
-  let energySettings = energySettingsResult || await prisma.energySettings.create({ data: { kwhPrice: 0.35, monthlyPrepayment: 80 } });
-
-  const weeklyExpenses = weeklyExpensesAgg._sum.amount || 0;
-  const daysUntilTrip = nextTrip ? Math.ceil((nextTrip.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+  let energySettings = data.energySettingsResult || { kwhPrice: 0.35, monthlyPrepayment: 80 };
 
   let energyForecast = null;
   let energyDifference = 0;
-  if (energyReadings.length >= 2) {
-    const firstReading = energyReadings[0];
-    const lastReading = energyReadings[energyReadings.length - 1];
+  if (data.energyReadings?.length >= 2) {
+    const firstReading = data.energyReadings[0];
+    const lastReading = data.energyReadings[data.energyReadings.length - 1];
     const daysDiff = (lastReading.date.getTime() - firstReading.date.getTime()) / (1000 * 3600 * 24);
     if (daysDiff > 0) {
       const dailyKwh = (lastReading.value - firstReading.value) / daysDiff;
@@ -72,7 +40,7 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
     { title: "Gäste", icon: <Wifi size={24} />, href: "/guests", color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-500" },
     { title: "Smart Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
     { title: "Abos", icon: <TrendingUp size={24} />, href: "/subscriptions", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-500" },
-    { title: "Shopping", icon: <ShoppingCart size={24} />, href: "/shopping", badge: openShoppingItemsCount, color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-500" },
+    { title: "Shopping", icon: <ShoppingCart size={24} />, href: "/shopping", badge: data.openShoppingItemsCount, color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-500" },
     { title: "Putzplan", icon: <CheckCircle2 size={24} />, href: "/chores", color: "bg-stone-200 text-stone-700 dark:bg-stone-500/20 dark:text-stone-400" },
     { title: "Meal Prep", icon: <Utensils size={24} />, href: "/mealprep", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-500" },
     { title: "Date Night", icon: <Heart size={24} />, href: "/roulette", color: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-500" },
@@ -84,7 +52,6 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
 
   return (
     <div className="min-h-screen bg-[#FDFCFB] dark:bg-stone-950 text-stone-900 dark:text-stone-100 pb-40 font-sans selection:bg-[#C5A38E]/30 transition-colors duration-500">
-      
       <header className="sticky top-0 z-40 bg-[#FDFCFB]/80 dark:bg-stone-950/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-stone-800/50 px-4 md:px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl md:text-2xl font-bold tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
           Die Höhle <span className="text-[#C5A38E] font-light">HQ</span>
@@ -92,19 +59,15 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
         <div className="flex items-center gap-4">
           <p className="text-[10px] text-stone-500 uppercase tracking-widest hidden sm:block">Willkommen, {currentUser?.name}.</p>
           <ThemeToggle />
-          
-          {/* NEU: DER WECHSEL-BUTTON ZU MODERN */}
-          <form action={async () => { "use server"; import("@/lib/actions").then(a => a.updateUiLayout("MODERN")); }}>
+          <form action={async () => { "use server"; await updateUiLayout("MODERN"); }}>
              <SubmitButton isIconOnly className="w-8 h-8 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-500 hover:text-[#C5A38E] hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors flex items-center justify-center">
-               💻
+               <MonitorSmartphone size={16} />
              </SubmitButton>
           </form>
-
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-8 mt-6 space-y-8">
-        
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-6 rounded-[2.5rem] flex flex-col justify-center transition-colors">
             <div className="flex items-center justify-between mb-2">
@@ -114,7 +77,7 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
               </div>
               <TrendingUp size={20} className="text-emerald-500" />
             </div>
-            <p className="text-sm font-medium">Gemeinsam {choresDoneThisWeek} Aufgaben erledigt & € {weeklyExpenses.toFixed(0)} investiert.</p>
+            <p className="text-sm font-medium">Gemeinsam {data.choresDoneThisWeek} Aufgaben erledigt & € {weeklyExpenses.toFixed(0)} investiert.</p>
           </div>
 
           <div className="bg-[#C5A38E] text-white p-6 rounded-[2.5rem] flex flex-col justify-center shadow-lg relative overflow-hidden transition-colors">
@@ -122,7 +85,7 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
               <div className="flex items-center gap-2 opacity-80 mb-1">
                 <Timer size={16} />
                 <span className="text-[10px] font-bold uppercase tracking-widest">
-                  Trip: {nextTrip?.destination || 'Nächster Halt...'}
+                  Trip: {data.nextTrip?.destination || 'Nächster Halt...'}
                 </span>
               </div>
               <p className="text-2xl font-light">{daysUntilTrip !== null ? `Noch ${daysUntilTrip} Tage!` : 'Plane eine Reise in der Karte'}</p>
@@ -136,10 +99,10 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
               <span className="text-[10px] font-bold uppercase tracking-widest">Demnächst</span>
             </div>
             <div className="space-y-2 flex-1 scrollbar-thin overflow-y-auto pr-1">
-              {upcomingEvents.length === 0 ? (
+              {data.upcomingEvents.length === 0 ? (
                 <p className="text-xs text-stone-400 italic">Keine anstehenden Termine.</p>
               ) : (
-                upcomingEvents.map(ev => {
+                data.upcomingEvents.map((ev: any) => {
                   const isToday = ev.date.toDateString() === new Date().toDateString();
                   return (
                     <div key={ev.id} className="flex justify-between items-center text-sm border-b border-stone-100 dark:border-stone-800/50 pb-1">
@@ -167,7 +130,6 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
           ))}
         </section>
 
-        {/* NEU: ASYNCHRONE WIDGETS FÜR MAXIMALE PERFORMANCE */}
         <Suspense fallback={<div className="h-[280px] bg-stone-100 dark:bg-stone-900 rounded-[2.5rem] animate-pulse"></div>}>
           <FinanceWidget />
         </Suspense>
@@ -177,14 +139,13 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
         </Suspense>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          
           <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2.5rem] p-6 shadow-sm flex flex-col h-[450px] transition-colors">
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart size={18} className="text-[#C5A38E]" />
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Vorratsschrank</h3>
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-              {pantryItems.map(item => (
+              {data.pantryItems.map((item: any) => (
                 <div key={item.id} className="flex justify-between items-center p-3 bg-stone-50 dark:bg-stone-800/50 rounded-2xl group transition-colors">
                   <div className="flex items-center gap-2">
                     <form action={async () => { "use server"; await deletePantryItem(item.id); }}>
@@ -205,6 +166,21 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
                 </div>
               ))}
             </div>
+            <form action={async (formData) => { "use server"; await addPantryItem(formData.get("name") as string, formData.get("unit") as string, parseFloat(formData.get("min") as string)); }} className="mt-4 flex flex-col gap-2 bg-stone-50 dark:bg-stone-950 p-3 rounded-2xl border border-stone-100 dark:border-stone-800">
+              <input name="name" placeholder="Hinzufügen (z.B. Mehl)..." className="w-full h-10 bg-white dark:bg-stone-900 px-4 rounded-xl text-xs outline-none focus:border-[#C5A38E] border border-stone-200 dark:border-stone-800 transition" required />
+              <div className="flex gap-2">
+                <select name="unit" className="w-1/3 h-10 bg-white dark:bg-stone-900 px-2 rounded-xl text-xs outline-none border border-stone-200 dark:border-stone-800 focus:border-[#C5A38E] transition">
+                  <option value="Stück">Stück</option>
+                  <option value="Gramm">Gramm</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Liter">Liter</option>
+                  <option value="ml">ml</option>
+                  <option value="Packung">Pack.</option>
+                </select>
+                <input name="min" type="number" step="any" placeholder="Min. Bestand..." className="flex-1 h-10 bg-white dark:bg-stone-900 px-3 rounded-xl text-xs outline-none focus:border-[#C5A38E] border border-stone-200 dark:border-stone-800 transition" required />
+                <SubmitButton className="w-10 h-10 bg-[#C5A38E] text-white rounded-xl shadow-sm hover:bg-[#A38572] transition-colors"><Plus size={16} className="mx-auto" /></SubmitButton>
+              </div>
+            </form>
           </div>
 
           <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2.5rem] p-6 shadow-sm flex flex-col justify-between transition-colors">
@@ -239,8 +215,8 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
               <h3 className="text-xs font-bold uppercase tracking-widest">Shared Contacts</h3>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
-              {contacts.length === 0 && <p className="text-xs text-stone-500 italic">Keine Kontakte gespeichert.</p>}
-              {contacts.map(c => (
+              {data.contacts.length === 0 && <p className="text-xs text-stone-500 italic">Keine Kontakte gespeichert.</p>}
+              {data.contacts.map((c: any) => (
                 <div key={c.id} className="bg-stone-800 p-4 rounded-2xl border border-stone-700/50 flex justify-between items-center">
                   <div>
                     <span className="text-[10px] font-bold text-[#C5A38E] uppercase tracking-wider">{c.role}</span>
@@ -254,7 +230,6 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
               ))}
             </div>
           </div>
-
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -265,7 +240,6 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
             <PetWidget />
           </Suspense>
         </section>
-
       </main>
       
       <div className="fixed bottom-6 left-0 right-0 px-4 pointer-events-none z-50 flex justify-center">
@@ -284,7 +258,6 @@ export default async function DashboardClassic({ currentUser, allUsers, /* ... a
           </div>
         </form>
       </div>
-
     </div>
   );
 }
