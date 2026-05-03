@@ -787,3 +787,12 @@ export async function deleteSharedContact(id: string) {
   await prisma.sharedContact.delete({ where: { id } });
   revalidatePath("/");
 }
+
+export async function updateUiLayout(layout: "CLASSIC" | "MODERN") {
+  const { user } = await requireAuth();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { uiLayout: layout }
+  });
+  revalidatePath("/");
+}

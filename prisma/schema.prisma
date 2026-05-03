@@ -15,6 +15,8 @@ model User {
   password      String       
   netIncome     Float        @default(0) 
   chorePoints   Int          @default(0) 
+
+  uiLayout      String       @default("CLASSIC") // NEU: "CLASSIC" (Sophie) oder "MODERN" (Du)
   
   incomes       Income[]     @relation("UserIncomes")
   items         BucketItem[] @relation("CreatedItems")
