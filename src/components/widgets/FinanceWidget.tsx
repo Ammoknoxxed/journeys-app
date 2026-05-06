@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Wallet, X } from "lucide-react";
 import SubmitButton from "@/components/SubmitButton";
+import { getStatsStartDate } from "@/lib/dateConfig";
 import { 
   addIncome, deleteIncome, addObligation, deleteObligation, 
   addExpense, deleteExpense, updateNetIncome 
@@ -13,7 +14,7 @@ export default async function FinanceWidget() {
   const session = await getServerSession(authOptions);
   
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const systemStartDate = new Date("2026-05-01T00:00:00.000Z");
+  const systemStartDate = getStatsStartDate();
 
   const [allUsers, obligations, currentMonthExpenses, allItems, expenseAgg, incomeAgg, tripAgg, currentMonthIncomes] = await Promise.all([
     prisma.user.findMany(),
@@ -29,10 +30,11 @@ export default async function FinanceWidget() {
   const currentUser = allUsers.find(u => u.email === session?.user?.email);
   const partner = allUsers.find(u => u.email !== session?.user?.email);
 
-  const startYear = 2026;
-  const startMonth = 4; // Mai (0-indiziert)
   const now = new Date();
-  let monthsActive = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth) + 1;
+  let monthsActive =
+    (now.getFullYear() - systemStartDate.getFullYear()) * 12 +
+    (now.getMonth() - systemStartDate.getMonth()) +
+    1;
   if (monthsActive < 0) monthsActive = 0; 
 
   const totalFixedMonthly = obligations.reduce((sum, ob) => sum + ob.amount, 0);

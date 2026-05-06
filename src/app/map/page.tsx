@@ -4,33 +4,74 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addTravelPoint, addTrip, deleteTravelPoint, deleteTrip } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import AppShell from "@/components/ui/AppShell";
+import Card from "@/components/ui/Card";
+import SubmitButton from "@/components/SubmitButton";
+import TravelMapPanel from "@/components/TravelMapPanel";
 import { MapPin, Plane, Map as MapIcon, Trash2 } from "lucide-react";
+
+type MappedTravelPoint = {
+  id: string;
+  name: string;
+  type: "VISITED" | "WANT_TO_GO" | "TRIP";
+  lat: number;
+  lng: number;
+};
+
+async function geocodeLocation(name: string) {
+  const query = encodeURIComponent(name);
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`, {
+    headers: { "User-Agent": "hoehlehq-map/1.0" },
+    next: { revalidate: 86400 },
+  });
+  if (!response.ok) return null;
+  const result = (await response.json()) as Array<{ lat: string; lon: string }>;
+  if (!result.length) return null;
+  return { lat: Number(result[0].lat), lng: Number(result[0].lon) };
+}
 
 export default async function MapPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session?.user?.email) redirect("/login");
 
   const points = await prisma.travelPoint.findMany({ orderBy: { createdAt: 'desc' } });
   const visited = points.filter(p => p.type === "VISITED");
   const goals = points.filter(p => p.type === "WANT_TO_GO");
   const plannedTrips = await prisma.trip.findMany({ orderBy: { date: 'asc' } });
 
-  return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300 pb-32">
-      <div className="max-w-4xl mx-auto space-y-8">
-        
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 transition">←</Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Reisezentrum</h1>
-          </div>
-          <ThemeToggle />
-        </header>
+  const pointSources: Array<{ id: string; name: string; type: "VISITED" | "WANT_TO_GO" | "TRIP" }> = [
+    ...points.map((point) => ({ id: point.id, name: point.name, type: point.type as "VISITED" | "WANT_TO_GO" })),
+    ...plannedTrips.map((trip) => ({ id: `trip-${trip.id}`, name: trip.destination, type: "TRIP" as const })),
+  ];
 
-        {/* KONKRETE REISEN PLANEN (FÜR DASHBOARD COUNTDOWN & BUDGET) */}
-        <section className="bg-stone-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden">
+  const uniqueNames = Array.from(new Set(pointSources.map((point) => point.name.trim()).filter(Boolean)));
+  const coordinatesByName = new Map<string, { lat: number; lng: number }>();
+  const geocoded = await Promise.all(uniqueNames.map(async (name) => ({ name, coords: await geocodeLocation(name) })));
+  geocoded.forEach((entry) => {
+    if (entry.coords) coordinatesByName.set(entry.name, entry.coords);
+  });
+
+  const mapPoints: MappedTravelPoint[] = pointSources
+    .map((point) => {
+      const coords = coordinatesByName.get(point.name);
+      if (!coords) return null;
+      return { ...point, lat: coords.lat, lng: coords.lng };
+    })
+    .filter((point): point is MappedTravelPoint => Boolean(point));
+
+  return (
+    <AppShell title="Reisezentrum" subtitle="Trips planen und Ziele auf echter Karte sehen." backHref="/" maxWidthClassName="max-w-5xl">
+      <div className="space-y-8 pb-20">
+        <Card className="p-2">
+          <TravelMapPanel points={mapPoints} />
+          {mapPoints.length === 0 ? (
+            <p className="px-4 pb-4 pt-3 text-xs text-[var(--muted-foreground)]">
+              Noch keine geocodierbaren Orte gefunden. Nutze klare Ortsnamen wie `Rom, Italien`.
+            </p>
+          ) : null}
+        </Card>
+
+        <section className="relative overflow-hidden rounded-3xl bg-stone-900 p-8 text-white shadow-xl">
           <div className="absolute top-0 right-0 p-4 opacity-5 text-9xl"><Plane /></div>
           <div className="relative z-10">
             <h2 className="text-sm font-bold text-[#C5A38E] uppercase tracking-widest mb-6">Gebuchte Reisen</h2>
@@ -46,7 +87,7 @@ export default async function MapPage() {
                     </p>
                   </div>
                   <form action={async () => { "use server"; await deleteTrip(trip.id); }}>
-                    <button className="text-stone-500 hover:text-rose-500 transition-colors p-2"><Trash2 size={16} /></button>
+                    <SubmitButton isIconOnly className="p-2 text-stone-500 transition-colors hover:text-rose-500"><Trash2 size={16} /></SubmitButton>
                   </form>
                 </div>
               ))}
@@ -60,13 +101,12 @@ export default async function MapPage() {
                   <input name="date" type="date" className="bg-stone-800 px-3 py-2 rounded-xl text-xs outline-none" required />
                   <input name="amount" type="number" placeholder="Budget in € (optional)" className="bg-stone-800 px-3 py-2 rounded-xl text-xs outline-none" />
                </div>
-               <button className="w-full bg-[#C5A38E] hover:bg-[#A38572] text-white py-2 rounded-xl font-bold text-xs mt-1 transition-colors">Reise buchen</button>
+               <SubmitButton className="mt-1 w-full rounded-xl bg-[#C5A38E] py-2 text-xs font-bold text-white transition-colors hover:bg-[#A38572]">Reise buchen</SubmitButton>
             </form>
           </div>
         </section>
 
-        {/* WELTKARTE / TRÄUME */}
-        <section className="bg-white dark:bg-stone-900 p-8 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800">
+        <Card className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -77,7 +117,7 @@ export default async function MapPage() {
                 {visited.map(p => (
                   <li key={p.id} className="text-sm font-bold flex justify-between group">
                     <span>✓ {p.name}</span>
-                    <form action={async () => { "use server"; await deleteTravelPoint(p.id); }}><button className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500"><Trash2 size={12}/></button></form>
+                    <form action={async () => { "use server"; await deleteTravelPoint(p.id); }}><SubmitButton isIconOnly className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500"><Trash2 size={12}/></SubmitButton></form>
                   </li>
                 ))}
               </ul>
@@ -91,7 +131,7 @@ export default async function MapPage() {
                 {goals.map(p => (
                    <li key={p.id} className="text-sm font-bold text-stone-500 flex justify-between group">
                      <span>{p.name}</span>
-                     <form action={async () => { "use server"; await deleteTravelPoint(p.id); }}><button className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500"><Trash2 size={12}/></button></form>
+                     <form action={async () => { "use server"; await deleteTravelPoint(p.id); }}><SubmitButton isIconOnly className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-500"><Trash2 size={12}/></SubmitButton></form>
                    </li>
                 ))}
               </ul>
@@ -99,15 +139,14 @@ export default async function MapPage() {
           </div>
 
           <form action={async (formData) => { "use server"; await addTravelPoint(formData.get("name") as string, formData.get("type") as string); }} className="mt-8 border-t border-stone-100 dark:border-stone-800 pt-6 flex flex-col md:flex-row gap-3">
-            <input name="name" placeholder="Ort/Land auf der Karte markieren..." className="flex-1 bg-stone-50 dark:bg-stone-950 px-4 py-3 rounded-xl text-sm outline-none border border-transparent focus:border-[#C5A38E]" required />
+            <input name="name" placeholder="Ort/Land markieren (z. B. Rom, Italien)..." className="flex-1 bg-stone-50 dark:bg-stone-950 px-4 py-3 rounded-xl text-sm outline-none border border-transparent focus:border-[#C5A38E]" required />
             <div className="flex gap-2">
-              <button name="type" value="VISITED" className="px-4 py-3 bg-stone-800 dark:bg-stone-700 text-white rounded-xl text-xs font-bold hover:bg-stone-700 transition">War ich schon!</button>
-              <button name="type" value="WANT_TO_GO" className="px-4 py-3 bg-[#C5A38E] text-white rounded-xl text-xs font-bold hover:bg-[#A38572] transition">Da will ich hin!</button>
+              <SubmitButton name="type" value="VISITED" className="px-4 py-3 bg-stone-800 dark:bg-stone-700 text-white rounded-xl text-xs font-bold hover:bg-stone-700 transition">War ich schon!</SubmitButton>
+              <SubmitButton name="type" value="WANT_TO_GO" className="px-4 py-3 bg-[#C5A38E] text-white rounded-xl text-xs font-bold hover:bg-[#A38572] transition">Da will ich hin!</SubmitButton>
             </div>
           </form>
-        </section>
-
+        </Card>
       </div>
-    </div>
+    </AppShell>
   );
 }

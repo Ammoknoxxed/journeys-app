@@ -28,8 +28,27 @@ export default async function ShoppingPage() {
       <div className="space-y-8">
 
         <Card className="sticky top-24 z-10 p-4">
-          <form action={async (formData) => { "use server"; await addShoppingItem(formData.get("title") as string); }} className="flex gap-2">
-            <input name="title" placeholder="Artikel hinzufuegen..." className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 outline-none transition focus:border-[var(--accent)]/60" required autoFocus />
+          <form
+            action={async (formData) => {
+              "use server";
+              const amountValue = formData.get("amount") as string;
+              const parsedAmount = amountValue ? parseFloat(amountValue) : undefined;
+              const unit = (formData.get("unit") as string) || undefined;
+              await addShoppingItem(formData.get("title") as string, Number.isNaN(parsedAmount) ? undefined : parsedAmount, unit);
+            }}
+            className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_120px_120px_auto]"
+          >
+            <input name="title" placeholder="Artikel hinzufuegen..." className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 outline-none transition focus:border-[var(--accent)]/60" required autoFocus />
+            <input name="amount" type="number" step="any" placeholder="Menge" className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 outline-none transition focus:border-[var(--accent)]/60" />
+            <select name="unit" className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 outline-none transition focus:border-[var(--accent)]/60">
+              <option value="">Einheit</option>
+              <option value="Stück">Stück</option>
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="ml">ml</option>
+              <option value="l">l</option>
+              <option value="Packung">Packung</option>
+            </select>
             <SubmitButton className="rounded-xl bg-[var(--accent)] px-8 font-bold text-[var(--accent-contrast)] transition hover:brightness-95">
               Hinzufügen
             </SubmitButton>

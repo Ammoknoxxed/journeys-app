@@ -9,22 +9,21 @@ type StatChartsProps = {
   energy: EnergyReading[];
   incomes: Income[];
   totalFixed: number;
+  statsStartDateISO: string;
 };
 
-export default function StatCharts({ expenses, energy, incomes, totalFixed }: StatChartsProps) {
+export default function StatCharts({ expenses, energy, incomes, totalFixed, statsStartDateISO }: StatChartsProps) {
   
-  // Sichere Monats-Generierung: Niemals vor Mai 2026 anzeigen!
+  const statsStartDate = new Date(statsStartDateISO);
   const getValidMonths = () => {
     const result = [];
-    const startYear = 2026;
-    const startMonth = 4; // Mai = 4 (JavaScript Monate starten bei 0)
+    const startYear = statsStartDate.getFullYear();
+    const startMonth = statsStartDate.getMonth();
     
     const now = new Date();
     let currentYear = now.getFullYear();
     let currentMonth = now.getMonth();
 
-    // Falls wir uns noch VOR Mai 2026 befinden (z.B. jetzt im April),
-    // zeigen wir als einzigen Monat schonmal den kommenden Mai an.
     if (currentYear < startYear || (currentYear === startYear && currentMonth < startMonth)) {
        currentYear = startYear;
        currentMonth = startMonth;
@@ -38,7 +37,6 @@ export default function StatCharts({ expenses, energy, incomes, totalFixed }: St
         y -= 1;
       }
       
-      // Filtern: Nur Monate auf den Graphen packen, die NACH oder IM Mai 2026 liegen
       if (y > startYear || (y === startYear && m >= startMonth)) {
         const d = new Date(y, m, 1);
         result.push({
@@ -120,7 +118,7 @@ export default function StatCharts({ expenses, energy, incomes, totalFixed }: St
               </ComposedChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-stone-400 italic text-sm">Daten ab Mai 2026 verfügbar</div>
+            <div className="flex h-full items-center justify-center text-stone-400 italic text-sm">Noch keine Daten im gewählten Zeitraum.</div>
           )}
         </div>
       </div>
@@ -134,12 +132,15 @@ export default function StatCharts({ expenses, energy, incomes, totalFixed }: St
                  <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} opacity={0.3} />
                  <XAxis dataKey="name" stroke="#888" fontSize={10} tickLine={false} axisLine={false} />
                  <YAxis stroke="#888" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin', 'dataMax']} />
-                 <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', backgroundColor: '#1C1917', color: '#fff' }} />
+                 <Tooltip
+                   contentStyle={{ borderRadius: '1rem', border: 'none', backgroundColor: '#1C1917', color: '#fff' }}
+                   formatter={(value) => [`${Number(value ?? 0).toFixed(1)} kWh`, "Stromzaehler"]}
+                 />
                  <Line type="monotone" dataKey="kWh" stroke="#C5A38E" strokeWidth={3} dot={{ r: 4, fill: '#C5A38E' }} />
                </LineChart>
              </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-stone-400 italic text-sm">Keine Zählerstände ab Mai</div>
+            <div className="flex h-full items-center justify-center text-stone-400 italic text-sm">Noch keine Stromdaten im gewählten Zeitraum.</div>
           )}
         </div>
       </div>

@@ -6,13 +6,13 @@ import { prisma } from "@/lib/prisma";
 import StatCharts from "@/components/StatCharts";
 import AppShell from "@/components/ui/AppShell";
 import Card from "@/components/ui/Card";
+import { getStatsStartDate } from "@/lib/dateConfig";
 
 export default async function StatisticsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  // Harter Filter: Wir ignorieren alle Testdaten vor Mai 2026!
-  const statsStartDate = new Date("2026-05-01T00:00:00.000Z");
+  const statsStartDate = getStatsStartDate();
 
   const [expenses, energyReadings, chores, bucketItems, users, obligations, incomes] = await Promise.all([
     prisma.expense.findMany({ where: { date: { gte: statsStartDate } }, orderBy: { date: 'asc' } }),
@@ -49,6 +49,7 @@ export default async function StatisticsPage() {
         energy={energyReadings}
         incomes={incomes}
         totalFixed={totalFixed}
+        statsStartDateISO={statsStartDate.toISOString()}
       />
     </AppShell>
   );
