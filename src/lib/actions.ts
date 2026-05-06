@@ -481,8 +481,10 @@ export async function deleteTimelineEvent(id: string) {
 
 export async function submitCheckIn(weekYear: string, highlight: string, stress: string, nextWeek: string) {
   const { user } = await requireAuth();
-  await prisma.checkInAnswer.create({
-    data: { weekYear, highlight, stress, nextWeek, userId: user.id }
+  await prisma.checkInAnswer.upsert({
+    where: { weekYear_userId: { weekYear, userId: user.id } },
+    create: { weekYear, highlight, stress, nextWeek, userId: user.id },
+    update: { highlight, stress, nextWeek },
   });
   revalidatePath("/checkin");
 }
@@ -531,6 +533,7 @@ export async function toggleSmartDevice(id: string, currentState: boolean) {
   if (!device) return;
 
   const newState = !currentState;
+  let remoteUpdateSucceeded = false;
 
   try {
     const controller = new AbortController();
@@ -539,7 +542,7 @@ export async function toggleSmartDevice(id: string, currentState: boolean) {
     if (device.type === 'LIGHT' && device.externalId && device.modelCode) {
       const GOVEE_KEY = process.env.GOVEE_API_KEY;
       if (GOVEE_KEY) {
-        await fetch('https://developer-api.govee.com/v1/devices/control', {
+        const response = await fetch('https://developer-api.govee.com/v1/devices/control', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Govee-API-Key': GOVEE_KEY },
           body: JSON.stringify({
@@ -549,13 +552,14 @@ export async function toggleSmartDevice(id: string, currentState: boolean) {
           }),
           signal: controller.signal
         });
+        remoteUpdateSucceeded = response.ok;
       }
     }
 
     if (device.type === 'TV' && device.externalId) {
       const ST_TOKEN = process.env.SMARTTHINGS_TOKEN;
       if (ST_TOKEN) {
-        await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
+        const response = await fetch(`https://api.smartthings.com/v1/devices/${device.externalId}/commands`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${ST_TOKEN}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -563,15 +567,18 @@ export async function toggleSmartDevice(id: string, currentState: boolean) {
           }),
           signal: controller.signal
         });
+        remoteUpdateSucceeded = response.ok;
       }
     }
     
     clearTimeout(timeoutId);
 
-    await prisma.smartDevice.update({
-      where: { id },
-      data: { isActive: newState }
-    });
+    if (remoteUpdateSucceeded || !device.externalId) {
+      await prisma.smartDevice.update({
+        where: { id },
+        data: { isActive: newState }
+      });
+    }
 
     revalidatePath("/smarthome");
   } catch (error) {
@@ -719,6 +726,7 @@ export async function deleteHealthEvent(id: string) {
 }
 
 export async function setPantryCount(id: string, count: number) {
+  await requireAuth();
   const item = await prisma.pantryItem.findUnique({ where: { id } });
   if (!item) return;
 

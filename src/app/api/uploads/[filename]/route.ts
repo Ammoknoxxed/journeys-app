@@ -2,12 +2,23 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: Request, context: { params: Promise<{ filename: string }> | { filename: string } }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return new NextResponse("Nicht autorisiert", { status: 401 });
+    }
+
     // Kompatibilität für verschiedene Next.js Versionen
     const params = await context.params; 
     const filename = params.filename;
+    const isSafeFilename = /^[a-zA-Z0-9._-]+$/.test(filename);
+    if (!isSafeFilename) {
+      return new NextResponse("Ungültiger Dateiname", { status: 400 });
+    }
 
     // Wir holen die Datei aus dem neuen, sicheren /data/uploads Ordner
     const uploadDir = join(process.cwd(), 'data', 'uploads');

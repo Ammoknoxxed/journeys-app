@@ -2,8 +2,16 @@
 "use client";
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, ComposedChart, Legend } from 'recharts';
+import type { Expense, EnergyReading, Income } from "@prisma/client";
 
-export default function StatCharts({ expenses, energy, incomes, totalFixed }: { expenses: any[], energy: any[], incomes: any[], totalFixed: number }) {
+type StatChartsProps = {
+  expenses: Expense[];
+  energy: EnergyReading[];
+  incomes: Income[];
+  totalFixed: number;
+};
+
+export default function StatCharts({ expenses, energy, incomes, totalFixed }: StatChartsProps) {
   
   // Sichere Monats-Generierung: Niemals vor Mai 2026 anzeigen!
   const getValidMonths = () => {
@@ -76,7 +84,7 @@ export default function StatCharts({ expenses, energy, incomes, totalFixed }: { 
     kWh: r.value
   }));
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-stone-900 border border-stone-700 p-4 rounded-2xl shadow-xl">

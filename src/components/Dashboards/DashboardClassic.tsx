@@ -8,13 +8,15 @@ import PetWidget from "@/components/widgets/PetWidget";
 import BucketListWidget from "@/components/widgets/BucketListWidget";
 import FinanceWidget from "@/components/widgets/FinanceWidget";
 import { updateUiLayout, addBucketItem, setPantryCount, addPantryItem, deletePantryItem, addEnergyReading, deleteEnergyReading, updateEnergySettings, addSharedContact, deleteSharedContact } from "@/lib/actions";
+import type { DashboardProps } from "@/lib/dashboard";
+import type { SharedContact, TimelineEvent, PantryItem } from "@prisma/client";
 import { 
   LayoutDashboard, Wallet, ShoppingCart, Utensils, Map, Heart, Lock, 
   BookOpen, Calendar, CheckCircle2, TrendingUp, Plus, Trash2, 
   Settings, Clock, PieChart, Wifi, Zap, Phone, Timer, Star, MonitorSmartphone
 } from "lucide-react";
 
-export default function DashboardClassic({ currentUser, data }: any) {
+export default function DashboardClassic({ currentUser, data }: DashboardProps) {
   const weeklyExpenses = data.weeklyExpensesAgg?._sum?.amount || 0;
   const daysUntilTrip = data.nextTrip ? Math.ceil((data.nextTrip.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
@@ -38,15 +40,15 @@ export default function DashboardClassic({ currentUser, data }: any) {
   const apps = [
     { title: "Statistik", icon: <PieChart size={24} />, href: "/statistics", color: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-500" },
     { title: "Gäste", icon: <Wifi size={24} />, href: "/guests", color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-500" },
-    { title: "Smart Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
+    { title: "Smart-Home", icon: <LayoutDashboard size={24} />, href: "/smarthome", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-500" },
     { title: "Abos", icon: <TrendingUp size={24} />, href: "/subscriptions", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-500" },
     { title: "Shopping", icon: <ShoppingCart size={24} />, href: "/shopping", badge: data.openShoppingItemsCount, color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-500" },
     { title: "Putzplan", icon: <CheckCircle2 size={24} />, href: "/chores", color: "bg-stone-200 text-stone-700 dark:bg-stone-500/20 dark:text-stone-400" },
     { title: "Meal Prep", icon: <Utensils size={24} />, href: "/mealprep", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-500" },
-    { title: "Date Night", icon: <Heart size={24} />, href: "/roulette", color: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-500" },
+    { title: "Date-Ideen", icon: <Heart size={24} />, href: "/roulette", color: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-500" },
     { title: "Weltkarte", icon: <Map size={24} />, href: "/map", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-500" },
     { title: "Kalender", icon: <Calendar size={24} />, href: "/timeline", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-500" },
-    { title: "Gifts", icon: <Lock size={24} />, href: "/gifts", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-500" },
+    { title: "Geschenke", icon: <Lock size={24} />, href: "/gifts", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-500" },
     { title: "Wiki", icon: <BookOpen size={24} />, href: "/wiki", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-500" },
   ];
 
@@ -73,7 +75,7 @@ export default function DashboardClassic({ currentUser, data }: any) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                 <Star size={16} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Weekly Recap</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest">Wochenrückblick</span>
               </div>
               <TrendingUp size={20} className="text-emerald-500" />
             </div>
@@ -85,7 +87,7 @@ export default function DashboardClassic({ currentUser, data }: any) {
               <div className="flex items-center gap-2 opacity-80 mb-1">
                 <Timer size={16} />
                 <span className="text-[10px] font-bold uppercase tracking-widest">
-                  Trip: {data.nextTrip?.destination || 'Nächster Halt...'}
+                  Reise: {data.nextTrip?.destination || 'Nächster Halt...'}
                 </span>
               </div>
               <p className="text-2xl font-light">{daysUntilTrip !== null ? `Noch ${daysUntilTrip} Tage!` : 'Plane eine Reise in der Karte'}</p>
@@ -102,7 +104,7 @@ export default function DashboardClassic({ currentUser, data }: any) {
               {data.upcomingEvents.length === 0 ? (
                 <p className="text-xs text-stone-400 italic">Keine anstehenden Termine.</p>
               ) : (
-                data.upcomingEvents.map((ev: any) => {
+                data.upcomingEvents.map((ev: TimelineEvent) => {
                   const isToday = ev.date.toDateString() === new Date().toDateString();
                   return (
                     <div key={ev.id} className="flex justify-between items-center text-sm border-b border-stone-100 dark:border-stone-800/50 pb-1">
@@ -145,7 +147,7 @@ export default function DashboardClassic({ currentUser, data }: any) {
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Vorratsschrank</h3>
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-              {data.pantryItems.map((item: any) => (
+              {data.pantryItems.map((item: PantryItem) => (
                 <div key={item.id} className="flex justify-between items-center p-3 bg-stone-50 dark:bg-stone-800/50 rounded-2xl group transition-colors">
                   <div className="flex items-center gap-2">
                     <form action={async () => { "use server"; await deletePantryItem(item.id); }}>
@@ -212,11 +214,11 @@ export default function DashboardClassic({ currentUser, data }: any) {
           <div className="bg-stone-900 text-white rounded-[2.5rem] p-6 shadow-xl flex flex-col h-[450px] transition-colors">
             <div className="flex items-center gap-2 mb-4 text-[#C5A38E]">
               <Phone size={18} />
-              <h3 className="text-xs font-bold uppercase tracking-widest">Shared Contacts</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest">Wichtige Kontakte</h3>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
               {data.contacts.length === 0 && <p className="text-xs text-stone-500 italic">Keine Kontakte gespeichert.</p>}
-              {data.contacts.map((c: any) => (
+              {data.contacts.map((c: SharedContact) => (
                 <div key={c.id} className="bg-stone-800 p-4 rounded-2xl border border-stone-700/50 flex justify-between items-center">
                   <div>
                     <span className="text-[10px] font-bold text-[#C5A38E] uppercase tracking-wider">{c.role}</span>

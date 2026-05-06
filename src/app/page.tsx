@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import type { DashboardData } from "@/lib/dashboard";
 
 // HIER IST DER FIX: Großes 'D' bei Dashboards
 import DashboardClassic from "@/components/Dashboards/DashboardClassic";
@@ -36,7 +37,7 @@ export default async function Page() {
   ]);
 
   // Wir packen alle Daten in ein großes Objekt
-  const dashboardData = {
+  const dashboardData: DashboardData = {
     currentUser, allUsers, openShoppingItemsCount, pantryItems,
     energyReadings, energySettingsResult, contacts, nextTrip,
     upcomingEvents, weeklyExpensesAgg, choresDoneThisWeek

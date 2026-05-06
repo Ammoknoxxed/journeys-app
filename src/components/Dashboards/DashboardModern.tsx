@@ -9,132 +9,124 @@ import Link from "next/link";
 import SubmitButton from "@/components/SubmitButton";
 import { updateUiLayout } from "@/lib/actions";
 import { CheckCircle2, CreditCard, Plane, ShoppingBag, LayoutGrid } from "lucide-react";
+import type { DashboardProps } from "@/lib/dashboard";
+import { APP_SECTIONS } from "@/lib/navigation";
 
-export default function DashboardModern({ currentUser, data }: any) {
+export default function DashboardModern({ currentUser, data }: DashboardProps) {
+  const statCards = [
+    { label: "Erledigte Aufgaben", value: String(data.choresDoneThisWeek), icon: CheckCircle2 },
+    { label: "Ausgaben (7 Tage)", value: `€ ${data.weeklyExpensesAgg?._sum?.amount?.toFixed(0) || 0}`, icon: CreditCard },
+    {
+      label: "Tage bis Trip",
+      value: data.nextTrip ? String(Math.ceil((data.nextTrip.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : "-",
+      icon: Plane,
+    },
+  ];
+
   return (
-    // overflow-x-hidden verhindert zu 100%, dass etwas aus dem Bildschirm läuft
-    <div className="min-h-screen bg-black text-zinc-100 font-sans overflow-x-hidden selection:bg-white/20 pb-32">
-      
-      {/* FLOATING TOP NAV */}
-      <div className="pt-6 px-4 w-full max-w-7xl mx-auto flex justify-center">
-        <nav className="w-full bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800/80 rounded-full px-6 py-3 flex justify-between items-center shadow-2xl">
+    <div className="min-h-screen bg-[var(--surface)] pb-32 font-sans text-[var(--foreground)]">
+      <div className="mx-auto flex w-full max-w-7xl justify-center px-4 pt-6">
+        <nav className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)]/90 px-5 py-3 shadow-sm backdrop-blur-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.4)]">
-              <LayoutGrid size={16} className="text-black" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface-soft)]">
+              <LayoutGrid size={16} className="text-[var(--foreground)]" />
             </div>
-            <span className="font-semibold tracking-wide text-sm hidden md:block text-white">Höhle OS</span>
+            <span className="hidden text-sm font-semibold tracking-wide md:block">Höhle HQ</span>
           </div>
-          
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <div className="h-4 w-px bg-zinc-800"></div>
+            <div className="h-4 w-px bg-[var(--border)]" />
             <form action={async () => { "use server"; await updateUiLayout("CLASSIC"); }}>
-               <SubmitButton className="text-xs font-semibold bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 px-5 py-2 rounded-full transition-all">
-                 Classic UI
-               </SubmitButton>
+              <SubmitButton className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]">
+                Classic UI
+              </SubmitButton>
             </form>
           </div>
         </nav>
       </div>
 
-      <main className="w-full max-w-7xl mx-auto px-4 mt-12 space-y-12">
-        
-        {/* HERO SECTION */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+      <main className="mx-auto mt-10 w-full max-w-7xl space-y-10 px-4">
+        <div className="flex flex-col justify-between gap-6 px-2 md:flex-row md:items-end">
           <div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter text-white mb-2">
-              Willkommen, <span className="text-zinc-600">{currentUser?.name}</span>.
+            <h1 className="mb-2 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
+              Willkommen, <span className="text-[var(--accent)]">{currentUser?.name}</span>.
             </h1>
-            <p className="text-sm md:text-base text-zinc-400 font-medium">Dein System-Status für heute. Alles läuft reibungslos.</p>
+            <p className="text-sm font-medium text-[var(--muted-foreground)] md:text-base">Dein Haushaltsstatus fuer heute.</p>
           </div>
         </div>
 
-        {/* HIGH-END STATS (Bento Grid) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          
-          {/* Stat 1 */}
-          <div className="bg-zinc-950 border border-zinc-800/80 rounded-[2rem] p-6 flex flex-col justify-between hover:border-zinc-600 transition-colors group">
-            <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform">
-              <CheckCircle2 size={20} />
+        <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+          {statCards.map((card) => (
+            <div key={card.label} className="group flex flex-col justify-between rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 transition-colors hover:border-[var(--accent)]/40">
+              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] transition-transform group-hover:scale-110">
+                <card.icon size={20} />
+              </div>
+              <div>
+                <p className="text-3xl font-semibold tracking-tight">{card.value}</p>
+                <p className="mt-1 text-xs font-medium text-[var(--muted-foreground)] md:text-sm">{card.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-3xl font-semibold tracking-tighter text-white">{data.choresDoneThisWeek}</p>
-              <p className="text-xs md:text-sm font-medium text-zinc-500 mt-1">Erledigte Aufgaben</p>
-            </div>
-          </div>
+          ))}
 
-          {/* Stat 2 */}
-          <div className="bg-zinc-950 border border-zinc-800/80 rounded-[2rem] p-6 flex flex-col justify-between hover:border-zinc-600 transition-colors group">
-            <div className="w-10 h-10 rounded-full bg-zinc-800 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <CreditCard size={20} />
-            </div>
-            <div>
-              <p className="text-3xl font-semibold tracking-tighter text-white">€ {data.weeklyExpensesAgg?._sum?.amount?.toFixed(0) || 0}</p>
-              <p className="text-xs md:text-sm font-medium text-zinc-500 mt-1">Ausgaben (7 Tage)</p>
-            </div>
-          </div>
-
-          {/* Stat 3 */}
-          <div className="bg-zinc-950 border border-zinc-800/80 rounded-[2rem] p-6 flex flex-col justify-between hover:border-zinc-600 transition-colors group">
-            <div className="w-10 h-10 rounded-full bg-zinc-800 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Plane size={20} />
-            </div>
-            <div>
-              <p className="text-3xl font-semibold tracking-tighter text-white">
-                {data.nextTrip ? Math.ceil((data.nextTrip.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : '-'}
-              </p>
-              <p className="text-xs md:text-sm font-medium text-zinc-500 mt-1">Tage bis zum Trip</p>
-            </div>
-          </div>
-
-          {/* Stat 4 (Clickable) */}
-          <Link href="/shopping" className="block w-full h-full">
-            <div className="bg-white text-black border border-white rounded-[2rem] p-6 flex flex-col justify-between hover:bg-zinc-200 transition-colors group h-full shadow-[0_0_30px_rgba(255,255,255,0.15)]">
-              <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <Link href="/shopping" className="block h-full w-full">
+            <div className="group flex h-full flex-col justify-between rounded-3xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-6 transition-colors hover:bg-[var(--accent)]/20">
+              <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--foreground)] text-[var(--background)] transition-transform group-hover:scale-110">
                 <ShoppingBag size={20} />
               </div>
               <div>
-                <p className="text-3xl font-semibold tracking-tighter">{data.openShoppingItemsCount}</p>
-                <p className="text-xs md:text-sm font-bold text-zinc-600 mt-1">Auf Einkaufsliste</p>
+                <p className="text-3xl font-semibold tracking-tight">{data.openShoppingItemsCount}</p>
+                <p className="mt-1 text-xs font-bold text-[var(--muted-foreground)] md:text-sm">Auf Einkaufsliste</p>
               </div>
             </div>
           </Link>
         </div>
 
-        {/* MAIN WIDGETS GRID */}
-        {/* Durch das 2-Spalten-Grid (lg:grid-cols-2) hat jedes Widget genug Platz und fließt nicht aus dem Bild */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Linke Spalte */}
-          <div className="space-y-8 flex flex-col w-full">
-             <div className="w-full overflow-hidden rounded-[2.5rem]">
-               <Suspense fallback={<div className="h-64 bg-zinc-950 border border-zinc-800 rounded-[2.5rem] animate-pulse"></div>}>
-                 <FinanceWidget />
-               </Suspense>
-             </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          {APP_SECTIONS.map((section) => (
+            <div key={section.title} className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">{section.title}</p>
+              <div className="grid gap-2">
+                {section.links.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
+                  >
+                    <item.icon size={15} />
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
 
-             <div className="w-full overflow-hidden rounded-[2.5rem]">
-               <Suspense fallback={<div className="h-64 bg-zinc-950 border border-zinc-800 rounded-[2.5rem] animate-pulse"></div>}>
-                 <PetWidget />
-               </Suspense>
-             </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div className="flex w-full flex-col space-y-8">
+            <div className="w-full overflow-hidden rounded-[2.5rem]">
+              <Suspense fallback={<div className="h-64 animate-pulse rounded-[2.5rem] border border-[var(--border)] bg-[var(--card)]" />}>
+                <FinanceWidget />
+              </Suspense>
+            </div>
+            <div className="w-full overflow-hidden rounded-[2.5rem]">
+              <Suspense fallback={<div className="h-64 animate-pulse rounded-[2.5rem] border border-[var(--border)] bg-[var(--card)]" />}>
+                <PetWidget />
+              </Suspense>
+            </div>
           </div>
 
-          {/* Rechte Spalte */}
-          <div className="space-y-8 flex flex-col w-full">
-             <div className="w-full overflow-hidden rounded-[2.5rem]">
-               <Suspense fallback={<div className="h-64 bg-zinc-950 border border-zinc-800 rounded-[2.5rem] animate-pulse"></div>}>
-                 <BucketListWidget />
-               </Suspense>
-             </div>
-
-             <div className="w-full overflow-hidden rounded-[2.5rem]">
-               <Suspense fallback={<div className="h-64 bg-zinc-950 border border-zinc-800 rounded-[2.5rem] animate-pulse"></div>}>
-                 <StickyNotesWidget />
-               </Suspense>
-             </div>
+          <div className="flex w-full flex-col space-y-8">
+            <div className="w-full overflow-hidden rounded-[2.5rem]">
+              <Suspense fallback={<div className="h-64 animate-pulse rounded-[2.5rem] border border-[var(--border)] bg-[var(--card)]" />}>
+                <BucketListWidget />
+              </Suspense>
+            </div>
+            <div className="w-full overflow-hidden rounded-[2.5rem]">
+              <Suspense fallback={<div className="h-64 animate-pulse rounded-[2.5rem] border border-[var(--border)] bg-[var(--card)]" />}>
+                <StickyNotesWidget />
+              </Suspense>
+            </div>
           </div>
-
         </div>
       </main>
     </div>

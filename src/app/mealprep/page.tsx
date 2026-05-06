@@ -4,11 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addMealPlan, deleteMealPlan, syncIngredientsToShoppingList, deleteRecipe, markMealCooked } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 import RecipeForm from "@/components/RecipeForm";
-import SubmitButton from "@/components/SubmitButton"; // NEU
+import SubmitButton from "@/components/SubmitButton";
 import { Trash2, Utensils, BookOpen, CheckCircle, ChevronRight, PlusCircle, Sparkles, ShoppingCart } from "lucide-react";
+import AppShell from "@/components/ui/AppShell";
 
 const DAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
@@ -20,20 +19,12 @@ export default async function MealPrepPage() {
   const recipes = await prisma.recipe.findMany({ include: { ingredients: true }, orderBy: { title: 'asc' } });
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300">
-      <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 transition shadow-sm">
-              ←
-            </Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Meal Prep & Kochbuch
-            </h1>
-          </div>
-          <ThemeToggle />
-        </header>
+    <AppShell
+      title="Meal Prep & Kochbuch"
+      subtitle="Wochenplanung und Rezepte in einem Flow."
+      backHref="/"
+      maxWidthClassName="max-w-6xl"
+    >
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -195,7 +186,6 @@ export default async function MealPrepPage() {
           </div>
         </div>
 
-      </div>
-    </div>
+    </AppShell>
   );
 }
