@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import AppShell from "@/components/ui/AppShell";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -13,19 +14,8 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300">
-      <div className="max-w-2xl mx-auto space-y-8">
-        
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-2xl text-stone-400 hover:text-[#C5A38E] transition-colors">
-              ←
-            </Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Dein Profil
-            </h1>
-          </div>
-        </header>
+    <AppShell title="Dein Profil" subtitle="Kontodaten und Basisinfos." backHref="/" maxWidthClassName="max-w-2xl">
+      <div className="space-y-8">
 
         <div className="bg-white dark:bg-stone-900 p-8 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800 space-y-8">
           
@@ -61,6 +51,6 @@ export default async function ProfilePage() {
 
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -4,28 +4,20 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toggleSmartDevice, deleteSmartDevice, addSmartDevice, setGoveeDeviceState, sendTvCommand } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
-import SubmitButton from "@/components/SubmitButton"; // NEU
+import SubmitButton from "@/components/SubmitButton";
+import AppShell from "@/components/ui/AppShell";
 import { Volume2, Volume1, VolumeX, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Play, Pause, Home, Undo2 } from "lucide-react";
 
 export default async function SmartHomePage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session?.user?.email) redirect("/login");
 
   const devices = await prisma.smartDevice.findMany({ orderBy: { room: 'asc' } });
   const rooms = Array.from(new Set(devices.map(d => d.room)));
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300 pb-32">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 transition">←</Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Smart Home</h1>
-          </div>
-          <ThemeToggle />
-        </header>
+    <AppShell title="Smart-Home" subtitle="Räume und Geräte zentral steuern." backHref="/" maxWidthClassName="max-w-4xl">
+      <div className="space-y-8 pb-20">
 
         {rooms.length === 0 ? (
           <div className="bg-white dark:bg-stone-900 p-10 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 text-center">
@@ -139,6 +131,10 @@ export default async function SmartHomePage() {
           ))
         )}
 
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-xs text-[var(--muted-foreground)]">
+          Hinweis: Fuer TV und Licht wird nur bei erfolgreicher API-Antwort ein Zustand gespeichert.
+        </div>
+
         <form action={async (formData) => { 
           "use server"; 
           await addSmartDevice(
@@ -169,6 +165,6 @@ export default async function SmartHomePage() {
           </SubmitButton>
         </form>
       </div>
-    </div>
+    </AppShell>
   );
 }

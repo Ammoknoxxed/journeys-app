@@ -238,8 +238,12 @@ export async function clearShoppingList() {
 
 export async function addWikiEntry(title: string, content: string, category: string) {
   const { user } = await requireAuth();
+  const cleanTitle = title.trim();
+  const cleanContent = content.trim();
+  const cleanCategory = category.trim() || "Allgemein";
+  if (!cleanTitle || !cleanContent) return;
   await prisma.wikiEntry.create({
-    data: { title, content, category, addedBy: user.name || "Unbekannt" }
+    data: { title: cleanTitle, content: cleanContent, category: cleanCategory, addedBy: user.name || "Unbekannt" }
   });
   revalidatePath("/wiki");
 }
@@ -252,8 +256,10 @@ export async function deleteWikiEntry(id: string) {
 
 export async function addChore(title: string, points: number) {
   await requireAuth();
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return;
   await prisma.chore.create({
-    data: { title, points: Math.abs(points) }
+    data: { title: cleanTitle, points: Math.max(1, Math.abs(points)) }
   });
   revalidatePath("/chores");
 }
@@ -274,8 +280,10 @@ export async function completeChore(choreId: string, points: number) {
 
 export async function addDateIdea(title: string) {
   const { user } = await requireAuth();
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return;
   await prisma.dateIdea.create({
-    data: { title, creatorId: user.id }
+    data: { title: cleanTitle, creatorId: user.id }
   });
   revalidatePath("/roulette");
 }
@@ -477,9 +485,12 @@ export async function deleteVaultItem(id: string) {
 
 export async function addGiftIdea(title: string, priceStr: string, url: string) {
   const { user } = await requireAuth();
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return;
+  const cleanUrl = url.trim();
   const price = priceStr ? Math.abs(parseFloat(priceStr)) : null;
   await prisma.giftIdea.create({
-    data: { title, price, url, userId: user.id }
+    data: { title: cleanTitle, price, url: cleanUrl, userId: user.id }
   });
   revalidatePath("/gifts");
 }
@@ -498,8 +509,10 @@ export async function deleteGiftIdea(id: string) {
 
 export async function addTimelineEvent(title: string, dateStr: string, type: string) {
   const { user } = await requireAuth();
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return;
   await prisma.timelineEvent.create({
-    data: { title, date: new Date(dateStr), type, creatorId: user.id }
+    data: { title: cleanTitle, date: new Date(dateStr), type, creatorId: user.id }
   });
   revalidatePath("/timeline");
   revalidatePath("/"); 

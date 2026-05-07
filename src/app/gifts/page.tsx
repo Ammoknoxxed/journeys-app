@@ -3,8 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addGiftIdea, toggleGiftPurchased, deleteGiftIdea } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import SubmitButton from "@/components/SubmitButton";
+import AppShell from "@/components/ui/AppShell";
 
 export default async function GiftsPage() {
   const session = await getServerSession(authOptions);
@@ -16,15 +16,8 @@ export default async function GiftsPage() {
   const gifts = await prisma.giftIdea.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300 pb-32">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 transition">←</Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Secret Gifts</h1>
-          </div>
-          <ThemeToggle />
-        </header>
+    <AppShell title="Geschenke" subtitle="Private Ideenliste nur fuer dich." backHref="/" maxWidthClassName="max-w-2xl">
+      <div className="space-y-8 pb-20">
 
         <section className="bg-stone-900 text-white p-6 rounded-3xl shadow-xl">
           <h2 className="text-sm font-bold text-[#C5A38E] uppercase tracking-widest mb-2 flex items-center gap-2"><span>🤫</span> Streng Geheim</h2>
@@ -35,7 +28,7 @@ export default async function GiftsPage() {
               <div key={gift.id} className={`p-4 rounded-2xl border ${gift.isPurchased ? 'bg-stone-800/50 border-stone-700 opacity-60' : 'bg-stone-800 border-stone-700'}`}>
                 <div className="flex justify-between items-start mb-2">
                   <p className={`font-bold ${gift.isPurchased ? 'line-through text-stone-500' : 'text-white'}`}>{gift.title}</p>
-                  <form action={async () => { "use server"; await deleteGiftIdea(gift.id); }}><button className="text-stone-500 hover:text-red-400 text-sm">✕</button></form>
+                  <form action={async () => { "use server"; await deleteGiftIdea(gift.id); }}><SubmitButton isIconOnly className="text-sm text-stone-500 hover:text-red-400">✕</SubmitButton></form>
                 </div>
                 <div className="flex justify-between items-end">
                   <div className="text-xs text-stone-400 space-x-3">
@@ -43,9 +36,9 @@ export default async function GiftsPage() {
                     {gift.url && <a href={gift.url} target="_blank" className="text-[#C5A38E] hover:underline">Link ↗</a>}
                   </div>
                   <form action={async () => { "use server"; await toggleGiftPurchased(gift.id, !gift.isPurchased); }}>
-                    <button className={`text-xs px-3 py-1 rounded-lg font-bold ${gift.isPurchased ? 'bg-stone-700 text-stone-300' : 'bg-[#C5A38E] text-white'}`}>
+                    <SubmitButton className={`rounded-lg px-3 py-1 text-xs font-bold ${gift.isPurchased ? 'bg-stone-700 text-stone-300' : 'bg-[#C5A38E] text-white'}`}>
                       {gift.isPurchased ? 'Gekauft ✓' : 'Als gekauft markieren'}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -58,10 +51,10 @@ export default async function GiftsPage() {
           <div className="flex gap-2">
             <input name="price" type="number" placeholder="€" className="w-24 bg-stone-50 dark:bg-stone-950 p-3 rounded-xl outline-none text-sm" />
             <input name="url" type="url" placeholder="Link (optional)" className="flex-1 bg-stone-50 dark:bg-stone-950 p-3 rounded-xl outline-none text-sm" />
-            <button type="submit" className="bg-stone-800 dark:bg-stone-700 text-white px-5 rounded-xl font-bold">+</button>
+            <SubmitButton className="rounded-xl bg-stone-800 px-5 font-bold text-white dark:bg-stone-700">+</SubmitButton>
           </div>
         </form>
       </div>
-    </div>
+    </AppShell>
   );
 }

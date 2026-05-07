@@ -41,13 +41,13 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--surface)] p-4">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#C5A38E] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+          <h1 className="mb-2 text-3xl font-bold text-[var(--accent)]">
             Initiale Einrichtung
           </h1>
-          <p className="text-sm text-stone-500 font-medium">Erstelle eure beiden Accounts (Max. 2)</p>
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">Erstellt eure beiden Accounts (max. 2).</p>
         </div>
 
         {message.text && (
@@ -60,34 +60,34 @@ export default function SetupPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Name (z.B. Er / Sie)</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">Name (z.B. Mike / Sophie)</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5A38E]/50 focus:border-[#C5A38E] transition-all text-stone-800"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[var(--foreground)] transition-all focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">E-Mail</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">E-Mail</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5A38E]/50 focus:border-[#C5A38E] transition-all text-stone-800"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[var(--foreground)] transition-all focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Passwort</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">Passwort</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5A38E]/50 focus:border-[#C5A38E] transition-all text-stone-800"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[var(--foreground)] transition-all focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
               required
             />
           </div>
@@ -95,7 +95,7 @@ export default function SetupPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 px-4 bg-stone-800 hover:bg-stone-700 text-white font-medium rounded-lg transition-colors flex justify-center items-center disabled:opacity-70"
+            className="flex w-full items-center justify-center rounded-lg bg-stone-800 px-4 py-2.5 font-medium text-white transition-colors hover:bg-stone-700 disabled:opacity-70"
           >
             {isLoading ? "Speichere in Datenbank..." : "Account anlegen"}
           </button>

@@ -32,40 +32,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50 p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--surface)] p-4">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#C5A38E] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            Our Journeys
+          <h1 className="mb-2 text-3xl font-bold text-[var(--accent)]">
+            Die Höhle HQ
           </h1>
-          <p className="text-sm text-stone-500 font-medium">Gemeinsam Träumen & Planen</p>
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">Gemeinsam planen, organisieren und leben.</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-500 text-sm rounded-lg border border-red-100 text-center">
+          <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-center text-sm text-red-500">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">E-Mail</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">E-Mail</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5A38E]/50 focus:border-[#C5A38E] transition-all text-stone-800"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[var(--foreground)] transition-all focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Passwort</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">Passwort</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5A38E]/50 focus:border-[#C5A38E] transition-all text-stone-800"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[var(--foreground)] transition-all focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
               required
             />
           </div>
@@ -78,6 +78,7 @@ export default function LoginPage() {
             {isLoading ? "Wird geprüft..." : "Eintreten"}
           </button>
         </form>
+        <p className="mt-6 text-center text-xs text-[var(--muted-foreground)]">Nur für euch beide freigeschaltet.</p>
       </div>
     </div>
   );
