@@ -11,11 +11,36 @@ import AppShell from "@/components/ui/AppShell";
 
 const DAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
-export default async function MealPrepPage() {
+function getWeekStart(baseDate: Date) {
+  const date = new Date(baseDate);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+export default async function MealPrepPage({
+  searchParams,
+}: {
+  searchParams?: { week?: string };
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const meals = await prisma.mealPlan.findMany({ orderBy: { dayOfWeek: 'asc' } });
+  const weekOffset = Number(searchParams?.week ?? 0);
+  const safeWeekOffset = Number.isNaN(weekOffset) ? 0 : Math.max(-12, Math.min(12, weekOffset));
+  const now = new Date();
+  const weekStart = getWeekStart(now);
+  weekStart.setDate(weekStart.getDate() + safeWeekOffset * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const meals = await prisma.mealPlan.findMany({
+    where: {
+      createdAt: { gte: weekStart, lt: weekEnd },
+    },
+    orderBy: [{ dayOfWeek: "asc" }, { createdAt: "asc" }],
+  });
   const recipes = await prisma.recipe.findMany({ include: { ingredients: true }, orderBy: { title: 'asc' } });
 
   return (
@@ -25,6 +50,24 @@ export default async function MealPrepPage() {
       backHref="/"
       maxWidthClassName="max-w-6xl"
     >
+        <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm">
+          <a
+            href={`/mealprep?week=${safeWeekOffset - 1}`}
+            className="rounded-lg border border-[var(--border)] px-3 py-1 text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
+          >
+            Vorige Woche
+          </a>
+          <span className="font-medium text-[var(--muted-foreground)]">
+            Woche von {weekStart.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })} bis{" "}
+            {new Date(weekEnd.getTime() - 1).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+          </span>
+          <a
+            href={`/mealprep?week=${safeWeekOffset + 1}`}
+            className="rounded-lg border border-[var(--border)] px-3 py-1 text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
+          >
+            Nächste Woche
+          </a>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -47,9 +90,11 @@ export default async function MealPrepPage() {
                    title,
                    formData.get("manualIngredients") as string || "",
                    "",
-                   rId || undefined
+                   rId || undefined,
+                   formData.get("weekStart") as string
                  );
                }} className="space-y-5 relative z-10">
+                 <input type="hidden" name="weekStart" value={weekStart.toISOString()} />
                  <div className="flex flex-wrap gap-3">
                    <select name="dayOfWeek" className="flex-1 bg-stone-50 dark:bg-stone-950 px-4 py-3 rounded-2xl text-sm outline-none focus:ring-1 focus:ring-[#C5A38E] border border-stone-100 dark:border-stone-800 transition-colors">
                      {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}

@@ -170,17 +170,36 @@ export async function deleteIncome(id: string) {
 
 export async function addShoppingItem(title: string, amount?: number, unit?: string) {
   await requireAuth();
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return;
   const pantryItem = await prisma.pantryItem.findFirst({
-    where: { name: { equals: title, mode: 'insensitive' } }
+    where: { name: { equals: cleanTitle, mode: 'insensitive' } }
   });
-  await prisma.shoppingItem.create({ 
-    data: { 
-      title,
-      amount: amount || null,
-      unit: unit || pantryItem?.unit || null,
-      pantryItemId: pantryItem?.id || null 
-    } 
+  const resolvedUnit = unit || pantryItem?.unit || null;
+  const normalizedAmount = amount && !Number.isNaN(amount) ? Math.abs(amount) : null;
+  const existing = await prisma.shoppingItem.findFirst({
+    where: { title: { equals: cleanTitle, mode: "insensitive" }, checked: false },
   });
+
+  if (existing) {
+    await prisma.shoppingItem.update({
+      where: { id: existing.id },
+      data: {
+        amount: normalizedAmount !== null ? (existing.amount || 0) + normalizedAmount : existing.amount,
+        unit: existing.unit || resolvedUnit,
+        pantryItemId: existing.pantryItemId || pantryItem?.id || null,
+      },
+    });
+  } else {
+    await prisma.shoppingItem.create({
+      data: {
+        title: cleanTitle,
+        amount: normalizedAmount,
+        unit: resolvedUnit,
+        pantryItemId: pantryItem?.id || null,
+      },
+    });
+  }
   revalidatePath("/shopping");
 }
 
@@ -271,8 +290,21 @@ export async function markDateUsed(id: string) {
 }
 
 // --- MEAL PREP 2.0 (Smart Match Version) ---
-export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInput: string, ingredientsInput: string, recipeNotes: string = "", recipeId?: string) {
+export async function addMealPlan(
+  dayOfWeek: number,
+  mealType: string,
+  recipeInput: string,
+  ingredientsInput: string,
+  recipeNotes: string = "",
+  recipeId?: string,
+  weekStartISO?: string
+) {
   await requireAuth();
+  const weekStart = weekStartISO ? new Date(weekStartISO) : new Date();
+  const normalizedWeekStart = Number.isNaN(weekStart.getTime()) ? new Date() : weekStart;
+  const plannedDate = new Date(normalizedWeekStart);
+  plannedDate.setHours(12, 0, 0, 0);
+  plannedDate.setDate(normalizedWeekStart.getDate() + dayOfWeek);
   
   if (recipeId) {
     const recipe = await prisma.recipe.findUnique({ where: { id: recipeId }, include: { ingredients: true } });
@@ -284,7 +316,8 @@ export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInp
           recipe: recipe.title, 
           recipeId: recipe.id, 
           ingredients: recipe.ingredients.map(i => `${i.amount} ${i.unit} ${i.name}`), 
-          recipeNotes: recipe.instructions 
+          recipeNotes: recipe.instructions,
+          createdAt: plannedDate,
         }
       });
 
@@ -325,7 +358,7 @@ export async function addMealPlan(dayOfWeek: number, mealType: string, recipeInp
   } else {
     const ingredients = ingredientsInput.split(',').map(i => i.trim()).filter(i => i.length > 0);
     await prisma.mealPlan.create({
-      data: { dayOfWeek, mealType, recipe: recipeInput, ingredients, recipeNotes }
+      data: { dayOfWeek, mealType, recipe: recipeInput, ingredients, recipeNotes, createdAt: plannedDate }
     });
   }
   

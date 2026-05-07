@@ -3,8 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { submitCheckIn } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
+import SubmitButton from "@/components/SubmitButton";
+import AppShell from "@/components/ui/AppShell";
 
 export default async function CheckInPage() {
   const session = await getServerSession(authOptions);
@@ -26,15 +26,8 @@ export default async function CheckInPage() {
   const bothAnswered = currentWeekAnswers.length === 2; 
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 transition">←</Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Weekly Sync</h1>
-          </div>
-          <ThemeToggle />
-        </header>
+    <AppShell title="Weekly Sync" subtitle="Kurzer Wochenabgleich zu zweit." backHref="/" maxWidthClassName="max-w-2xl">
+      <div className="space-y-8">
 
         {!myAnswer ? (
           <section className="bg-white dark:bg-stone-900 p-6 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800">
@@ -52,7 +45,9 @@ export default async function CheckInPage() {
                 <label className="block text-xs font-bold text-stone-500 mb-2">Worauf freust du dich nächste Woche?</label>
                 <textarea name="n" className="w-full bg-stone-50 dark:bg-stone-950 p-4 rounded-xl outline-none text-sm min-h-[80px]" required />
               </div>
-              <button type="submit" className="w-full bg-[#C5A38E] text-white py-4 rounded-xl font-bold hover:bg-[#A38572] transition">Einloggen</button>
+              <SubmitButton className="w-full rounded-xl bg-[#C5A38E] py-4 font-bold text-white transition hover:bg-[#A38572]">
+                Check-in speichern
+              </SubmitButton>
             </form>
           </section>
         ) : !bothAnswered ? (
@@ -77,6 +72,6 @@ export default async function CheckInPage() {
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

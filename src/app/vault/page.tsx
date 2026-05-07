@@ -4,9 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addVaultItem, deleteVaultItem } from "@/lib/actions";
-import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
-import SubmitButton from "@/components/SubmitButton"; // NEU
+import SubmitButton from "@/components/SubmitButton";
+import AppShell from "@/components/ui/AppShell";
 import { FileDown, Link as LinkIcon, Lock, Trash2, Upload } from "lucide-react";
 
 export default async function VaultPage() {
@@ -16,16 +15,8 @@ export default async function VaultPage() {
   const items = await prisma.vaultItem.findMany({ orderBy: { createdAt: 'desc' } });
 
   return (
-    <div className="min-h-screen bg-[#F9F7F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 p-4 md:p-8 transition-colors duration-300">
-      <div className="max-w-3xl mx-auto space-y-8">
-        
-        <header className="flex items-center justify-between pb-6 border-b border-stone-200 dark:border-stone-800">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 transition">←</Link>
-            <h1 className="text-3xl font-bold text-[#C5A38E]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Tresor</h1>
-          </div>
-          <ThemeToggle />
-        </header>
+    <AppShell title="Tresor" subtitle="Sensible Links und Dateien gemeinsam verwalten." backHref="/" maxWidthClassName="max-w-3xl">
+      <div className="space-y-8">
 
         <section className="bg-stone-900 text-white p-8 rounded-3xl shadow-2xl relative overflow-hidden">
           <div className="absolute -right-6 -top-6 opacity-5"><Lock size={150} /></div>
@@ -80,6 +71,6 @@ export default async function VaultPage() {
         </section>
 
       </div>
-    </div>
+    </AppShell>
   );
 }
