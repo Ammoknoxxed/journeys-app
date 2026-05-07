@@ -13,7 +13,7 @@ import type { SharedContact, TimelineEvent, PantryItem } from "@prisma/client";
 import { 
   LayoutDashboard, Wallet, ShoppingCart, Utensils, Map, Heart, Lock, 
   BookOpen, Calendar, CheckCircle2, TrendingUp, Plus, Trash2, 
-  Settings, Clock, PieChart, Wifi, Zap, Phone, Timer, Star, MonitorSmartphone
+  Settings, Clock, PieChart, Wifi, Zap, Phone, Timer, Star, MonitorSmartphone, CalendarClock, Plane
 } from "lucide-react";
 
 export default function DashboardClassic({ currentUser, data }: DashboardProps) {
@@ -52,6 +52,13 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
     { title: "Wiki", icon: <BookOpen size={24} />, href: "/wiki", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-500" },
   ];
 
+  const quickActions = [
+    { title: "Einkauf", href: "/shopping", icon: <ShoppingCart size={15} /> },
+    { title: "Termin", href: "/timeline", icon: <CalendarClock size={15} /> },
+    { title: "Meal", href: "/mealprep", icon: <Utensils size={15} /> },
+    { title: "Reise", href: "/map", icon: <Plane size={15} /> },
+  ];
+
   return (
     <div className="min-h-screen bg-[#FDFCFB] dark:bg-stone-950 text-stone-900 dark:text-stone-100 pb-40 font-sans selection:bg-[#C5A38E]/30 transition-colors duration-500">
       <header className="sticky top-0 z-40 bg-[#FDFCFB]/80 dark:bg-stone-950/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-stone-800/50 px-4 md:px-8 py-4 flex justify-between items-center">
@@ -70,6 +77,22 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-8 mt-6 space-y-8">
+        <section className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-4 shadow-sm dark:border-stone-800 dark:bg-stone-900/70">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-stone-400">Heute schnell starten</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {quickActions.map((action) => (
+              <Link
+                key={action.title}
+                href={action.href}
+                className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-3 text-sm font-semibold text-stone-600 transition hover:-translate-y-0.5 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-white"
+              >
+                {action.icon}
+                {action.title}
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 p-6 rounded-[2.5rem] flex flex-col justify-center transition-colors">
             <div className="flex items-center justify-between mb-2">
@@ -120,7 +143,7 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
           </div>
         </section>
 
-        <section className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-y-6 gap-x-2">
+        <section className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-y-6 gap-x-2">
           {apps.map((app) => (
             <Link key={app.title} href={app.href} className="group flex flex-col items-center gap-2 relative">
               <div className={`w-14 h-14 md:w-16 md:h-16 ${app.color} rounded-[1.25rem] flex items-center justify-center shadow-sm group-hover:scale-105 transition-all`}>
@@ -141,7 +164,7 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
         </Suspense>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2.5rem] p-6 shadow-sm flex flex-col h-[450px] transition-colors">
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-[2.5rem] p-6 shadow-sm flex flex-col md:h-[450px] transition-colors">
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart size={18} className="text-[#C5A38E]" />
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Vorratsschrank</h3>
@@ -211,7 +234,7 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
             </form>
           </div>
 
-          <div className="bg-stone-900 text-white rounded-[2.5rem] p-6 shadow-xl flex flex-col h-[450px] transition-colors">
+          <div className="bg-stone-900 text-white rounded-[2.5rem] p-6 shadow-xl flex flex-col md:h-[450px] transition-colors">
             <div className="flex items-center gap-2 mb-4 text-[#C5A38E]">
               <Phone size={18} />
               <h3 className="text-xs font-bold uppercase tracking-widest">Wichtige Kontakte</h3>
@@ -244,7 +267,7 @@ export default function DashboardClassic({ currentUser, data }: DashboardProps) 
         </section>
       </main>
       
-      <div className="fixed bottom-6 left-0 right-0 px-4 pointer-events-none z-50 flex justify-center">
+      <div className="fixed bottom-4 left-0 right-0 px-4 pointer-events-none z-50 flex justify-center md:bottom-6">
         <form action={async (formData) => { 
           "use server"; 
           await addBucketItem(formData.get("title") as string, parseFloat(formData.get("price") as string) || 0, formData.get("isSurprise") === "on"); 

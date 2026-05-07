@@ -8,11 +8,13 @@ import { Suspense } from "react";
 import Link from "next/link";
 import SubmitButton from "@/components/SubmitButton";
 import { updateUiLayout } from "@/lib/actions";
-import { CheckCircle2, CreditCard, Plane, ShoppingBag, LayoutGrid } from "lucide-react";
+import { CheckCircle2, CreditCard, Plane, ShoppingBag, LayoutGrid, CalendarClock, PlusCircle } from "lucide-react";
 import type { DashboardProps } from "@/lib/dashboard";
 import { APP_SECTIONS } from "@/lib/navigation";
 
 export default function DashboardModern({ currentUser, data }: DashboardProps) {
+  const nextEvent = data.upcomingEvents[0];
+  const daysUntilTrip = data.nextTrip ? Math.ceil((data.nextTrip.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const statCards = [
     { label: "Erledigte Aufgaben", value: String(data.choresDoneThisWeek), icon: CheckCircle2 },
     { label: "Ausgaben (7 Tage)", value: `€ ${data.weeklyExpensesAgg?._sum?.amount?.toFixed(0) || 0}`, icon: CreditCard },
@@ -45,7 +47,7 @@ export default function DashboardModern({ currentUser, data }: DashboardProps) {
         </nav>
       </div>
 
-      <main className="mx-auto mt-10 w-full max-w-7xl space-y-10 px-4">
+      <main className="mx-auto mt-8 w-full max-w-7xl space-y-8 px-4 md:mt-10 md:space-y-10">
         <div className="flex flex-col justify-between gap-6 px-2 md:flex-row md:items-end">
           <div>
             <h1 className="mb-2 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
@@ -54,6 +56,43 @@ export default function DashboardModern({ currentUser, data }: DashboardProps) {
             <p className="text-sm font-medium text-[var(--muted-foreground)] md:text-base">Dein Haushaltsstatus fuer heute.</p>
           </div>
         </div>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Heute zuerst</p>
+            <p className="text-sm font-semibold">{data.openShoppingItemsCount} offene Einkaufspunkte</p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">Direkt abhaken spart Klicks.</p>
+          </div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Nächster Termin</p>
+            <p className="text-sm font-semibold">{nextEvent ? nextEvent.title : "Kein Termin geplant"}</p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+              {nextEvent ? nextEvent.date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "Trage im Kalender euren nächsten Fixpunkt ein."}
+            </p>
+          </div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Reisefokus</p>
+            <p className="text-sm font-semibold">
+              {daysUntilTrip !== null ? `Noch ${daysUntilTrip} Tage bis ${data.nextTrip?.destination}` : "Noch keine Reise terminiert"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">Trips und Karte sind jetzt verbunden.</p>
+          </div>
+        </section>
+
+        <section className="grid gap-2 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/shopping" className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]">
+            <ShoppingBag size={16} /> Einkauf öffnen
+          </Link>
+          <Link href="/timeline" className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]">
+            <CalendarClock size={16} /> Termin ergänzen
+          </Link>
+          <Link href="/mealprep" className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]">
+            <PlusCircle size={16} /> Meal planen
+          </Link>
+          <Link href="/map" className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-[var(--muted-foreground)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]">
+            <Plane size={16} /> Reisezentrum
+          </Link>
+        </section>
 
         <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
           {statCards.map((card) => (

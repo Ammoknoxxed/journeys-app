@@ -22,8 +22,8 @@ export default function AppShell({
 }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[var(--surface)] text-[var(--foreground)] transition-colors duration-300">
-      <div className={`mx-auto w-full ${maxWidthClassName} space-y-8 px-4 pb-16 pt-6 md:px-8`}>
-        <header className="sticky top-4 z-40 rounded-2xl border border-[var(--border)] bg-[var(--card)]/90 p-4 backdrop-blur-xl">
+      <div className={`mx-auto w-full ${maxWidthClassName} space-y-8 px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pt-6`}>
+        <header className="sticky top-2 z-40 rounded-2xl border border-[var(--border)] bg-[var(--card)]/90 p-4 backdrop-blur-xl md:top-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               {backHref ? (
